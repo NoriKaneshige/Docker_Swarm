@@ -76,3 +76,295 @@ To add a worker to this swarm, run the following command:
 
 To add a manager to this swarm, run 'docker swarm join-token manager' and follow the instructions.
 ```
+# Let's play around a single node
+## docker node ls
+```
+Koitaro@MacBook-Pro-3 ~ % docker node ls
+ID                            HOSTNAME            STATUS              AVAILABILITY        MANAGER STATUS      ENGINE VERSION
+zsymzt2bx4gpt12vq8qk0cqqn *   docker-desktop      Ready               Active              Leader              19.03.8
+
+```
+## docker node --help
+```
+Koitaro@MacBook-Pro-3 ~ % docker node --help
+
+Usage:	docker node COMMAND
+
+Manage Swarm nodes
+
+Commands:
+  demote      Demote one or more nodes from manager in the swarm
+  inspect     Display detailed information on one or more nodes
+  ls          List nodes in the swarm
+  promote     Promote one or more nodes to manager in the swarm
+  ps          List tasks running on one or more nodes, defaults to current node
+  rm          Remove one or more nodes from the swarm
+  update      Update a node
+
+Run 'docker node COMMAND --help' for more information on a command.
+```
+## docker swarm --help
+```
+Koitaro@MacBook-Pro-3 ~ % docker swarm --help
+
+Usage:	docker swarm COMMAND
+
+Manage Swarm
+
+Commands:
+  ca          Display and rotate the root CA
+  init        Initialize a swarm
+  join        Join a swarm as a node and/or manager
+  join-token  Manage join tokens
+  leave       Leave the swarm
+  unlock      Unlock swarm
+  unlock-key  Manage the unlock key
+  update      Update the swarm
+
+Run 'docker swarm COMMAND --help' for more information on a command.
+```
+## docker searvice --help
+## service of the swarm replaces the docker run
+```
+Koitaro@MacBook-Pro-3 ~ % docker service --help
+
+Usage:	docker service COMMAND
+
+Manage services
+
+Commands:
+  create      Create a new service
+  inspect     Display detailed information on one or more services
+  logs        Fetch the logs of a service or task
+  ls          List services
+  ps          List the tasks of one or more services
+  rm          Remove one or more services
+  rollback    Revert changes to a service's configuration
+  scale       Scale one or multiple replicated services
+  update      Update a service
+
+Run 'docker service COMMAND --help' for more information on a command.
+```
+## docker service create
+## This is how we give it some new orders. Let's have it start the Alpine image. 8.8.8.8 is a Google DNS server.
+## The ID is not container ID. This is service ID, which was already spun up 1/1. (how many actually running)/(how many you specify for it to run)
+```
+Koitaro@MacBook-Pro-3 ~ % docker service create alpine ping 8.8.8.8
+pm8ioazf4q0q093h7ybvv864o
+overall progress: 1 out of 1 tasks
+1/1: running   [==================================================>]
+verify: Service converged
+
+Koitaro@MacBook-Pro-3 ~ % docker service ls
+ID                  NAME                MODE                REPLICAS            IMAGE               PORTS
+pm8ioazf4q0q        clever_yonath       replicated          1/1                 alpine:latest
+```
+## Where is containers? Let's give it the name of ID of the service, which gives us the tasks or containers for this service!
+## This looks similar to docker container ls command, but notice that this has NODE component.
+```
+Koitaro@MacBook-Pro-3 ~ % docker service ps clever_yonath
+ID                  NAME                IMAGE               NODE                DESIRED STATE       CURRENT STATE           ERROR               PORTS
+5gcgur2xp1ks        clever_yonath.1     alpine:latest       docker-desktop      Running             Running 4 minutes ago
+```
+## docker container ls, still works
+```
+Koitaro@MacBook-Pro-3 ~ % docker container ls
+CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS               NAMES
+81bdcb835a50        alpine:latest       "ping 8.8.8.8"      6 minutes ago       Up 6 minutes                            clever_yonath.1.5gcgur2xp1ksjnligy0zmvgv5
+```
+## Let's scale it up
+docker service update [ID of the service] --replicas 3
+```
+Koitaro@MacBook-Pro-3 ~ % docker service update pm8ioazf4q0q --replicas 3
+pm8ioazf4q0q
+overall progress: 3 out of 3 tasks
+1/3: running   [==================================================>]
+2/3: running   [==================================================>]
+3/3: running   [==================================================>]
+verify: Service converged
+ 
+Koitaro@MacBook-Pro-3 ~ % docker service ls
+ID                  NAME                MODE                REPLICAS            IMAGE               PORTS
+pm8ioazf4q0q        clever_yonath       replicated          3/3                 alpine:latest
+```
+## docker service ps [name of the service]
+## Now we see 3 tasks
+```
+Koitaro@MacBook-Pro-3 ~ % docker service ps clever_yonath
+ID                  NAME                IMAGE               NODE                DESIRED STATE       CURRENT STATE                ERROR               PORTS
+5gcgur2xp1ks        clever_yonath.1     alpine:latest       docker-desktop      Running             Running 11 minutes ago
+i1ehu1gtvcar        clever_yonath.2     alpine:latest       docker-desktop      Running             Running about a minute ago
+ebujk9qe7fqz        clever_yonath.3     alpine:latest       docker-desktop      Running             Running about a minute ago
+```
+## The always keeping something available in production as much as possible is one of the design goals of Swarm.
+## Let's investigate it.
+## docker update --help
+```
+Koitaro@MacBook-Pro-3 ~ % docker update --help
+
+Usage:	docker update [OPTIONS] CONTAINER [CONTAINER...]
+
+Update configuration of one or more containers
+
+Options:
+      --blkio-weight uint16        Block IO (relative weight), between 10 and 1000, or 0 to disable (default 0)
+      --cpu-period int             Limit CPU CFS (Completely Fair Scheduler) period
+      --cpu-quota int              Limit CPU CFS (Completely Fair Scheduler) quota
+      --cpu-rt-period int          Limit the CPU real-time period in microseconds
+      --cpu-rt-runtime int         Limit the CPU real-time runtime in microseconds
+  -c, --cpu-shares int             CPU shares (relative weight)
+      --cpus decimal               Number of CPUs
+      --cpuset-cpus string         CPUs in which to allow execution (0-3, 0,1)
+      --cpuset-mems string         MEMs in which to allow execution (0-3, 0,1)
+      --kernel-memory bytes        Kernel memory limit
+  -m, --memory bytes               Memory limit
+      --memory-reservation bytes   Memory soft limit
+      --memory-swap bytes          Swap limit equal to memory plus swap: '-1' to enable unlimited swap
+      --pids-limit int             Tune container pids limit (set -1 for unlimited)
+      --restart string             Restart policy to apply when a container exits
+```
+## docker service update --help
+## The goal of a Swarm service is that it's able to replace containers and update changes in the service without taking the entire thing down. If you had a service with three containers in it, you could technically take down one at a time to make a change and do sort of rolling update. Swarm ensures the consistent availability.
+```
+Koitaro@MacBook-Pro-3 ~ % docker service update --help
+
+Usage:	docker service update [OPTIONS] SERVICE
+
+Update a service
+
+Options:
+      --args command                       Service command args
+      --config-add config                  Add or update a config file on a service
+      --config-rm list                     Remove a configuration file
+      --constraint-add list                Add or update a placement constraint
+      --constraint-rm list                 Remove a constraint
+      --container-label-add list           Add or update a container label
+      --container-label-rm list            Remove a container label by its key
+      --credential-spec credential-spec    Credential spec for managed service account (Windows only)
+  -d, --detach                             Exit immediately instead of waiting for the service to converge
+      --dns-add list                       Add or update a custom DNS server
+      --dns-option-add list                Add or update a DNS option
+      --dns-option-rm list                 Remove a DNS option
+      --dns-rm list                        Remove a custom DNS server
+      --dns-search-add list                Add or update a custom DNS search domain
+      --dns-search-rm list                 Remove a DNS search domain
+      --endpoint-mode string               Endpoint mode (vip or dnsrr)
+      --entrypoint command                 Overwrite the default ENTRYPOINT of the image
+      --env-add list                       Add or update an environment variable
+      --env-rm list                        Remove an environment variable
+      --force                              Force update even if no changes require it
+      --generic-resource-add list          Add a Generic resource
+      --generic-resource-rm list           Remove a Generic resource
+      --group-add list                     Add an additional supplementary user group to the container
+      --group-rm list                      Remove a previously added supplementary user group from the container
+      --health-cmd string                  Command to run to check health
+      --health-interval duration           Time between running the check (ms|s|m|h)
+      --health-retries int                 Consecutive failures needed to report unhealthy
+      --health-start-period duration       Start period for the container to initialize before counting retries towards
+                                           unstable (ms|s|m|h)
+      --health-timeout duration            Maximum time to allow one check to run (ms|s|m|h)
+      --host-add list                      Add a custom host-to-IP mapping (host:ip)
+      --host-rm list                       Remove a custom host-to-IP mapping (host:ip)
+      --hostname string                    Container hostname
+      --image string                       Service image tag
+      --init                               Use an init inside each service container to forward signals and reap processes
+      --isolation string                   Service container isolation mode
+      --label-add list                     Add or update a service label
+      --label-rm list                      Remove a label by its key
+      --limit-cpu decimal                  Limit CPUs
+      --limit-memory bytes                 Limit Memory
+      --log-driver string                  Logging driver for service
+      --log-opt list                       Logging driver options
+      --mount-add mount                    Add or update a mount on a service
+      --mount-rm list                      Remove a mount by its target path
+      --network-add network                Add a network
+      --network-rm list                    Remove a network
+      --no-healthcheck                     Disable any container-specified HEALTHCHECK
+      --no-resolve-image                   Do not query the registry to resolve image digest and supported platforms
+      --placement-pref-add pref            Add a placement preference
+      --placement-pref-rm pref             Remove a placement preference
+      --publish-add port                   Add or update a published port
+      --publish-rm port                    Remove a published port by its target port
+  -q, --quiet                              Suppress progress output
+      --read-only                          Mount the container's root filesystem as read only
+      --replicas uint                      Number of tasks
+      --replicas-max-per-node uint         Maximum number of tasks per node (default 0 = unlimited)
+      --reserve-cpu decimal                Reserve CPUs
+      --reserve-memory bytes               Reserve Memory
+      --restart-condition string           Restart when condition is met ("none"|"on-failure"|"any")
+      --restart-delay duration             Delay between restart attempts (ns|us|ms|s|m|h)
+      --restart-max-attempts uint          Maximum number of restarts before giving up
+      --restart-window duration            Window used to evaluate the restart policy (ns|us|ms|s|m|h)
+      --rollback                           Rollback to previous specification
+      --rollback-delay duration            Delay between task rollbacks (ns|us|ms|s|m|h)
+      --rollback-failure-action string     Action on rollback failure ("pause"|"continue")
+      --rollback-max-failure-ratio float   Failure rate to tolerate during a rollback
+      --rollback-monitor duration          Duration after each task rollback to monitor for failure (ns|us|ms|s|m|h)
+      --rollback-order string              Rollback order ("start-first"|"stop-first")
+      --rollback-parallelism uint          Maximum number of tasks rolled back simultaneously (0 to roll back all at once)
+      --secret-add secret                  Add or update a secret on a service
+      --secret-rm list                     Remove a secret
+      --stop-grace-period duration         Time to wait before force killing a container (ns|us|ms|s|m|h)
+      --stop-signal string                 Signal to stop the container
+      --sysctl-add list                    Add or update a Sysctl option
+      --sysctl-rm list                     Remove a Sysctl option
+  -t, --tty                                Allocate a pseudo-TTY
+      --update-delay duration              Delay between updates (ns|us|ms|s|m|h)
+      --update-failure-action string       Action on update failure ("pause"|"continue"|"rollback")
+      --update-max-failure-ratio float     Failure rate to tolerate during an update
+      --update-monitor duration            Duration after each task update to monitor for failure (ns|us|ms|s|m|h)
+      --update-order string                Update order ("start-first"|"stop-first")
+      --update-parallelism uint            Maximum number of tasks updated simultaneously (0 to update all at once)
+  -u, --user string                        Username or UID (format: <name|uid>[:<group|gid>])
+      --with-registry-auth                 Send registry authentication details to swarm agents
+  -w, --workdir string                     Working directory inside the container
+```
+## Let's remove one of containers
+## docker container rm -f [name].1.[ID]
+## the deleted container will be replaces with new one imediately
+This is one of the responsibilities of a container orchestration system to make sure the services you specify are always running, and if they fail, it recovers from that failure. This is the difference from docker run. docker run would never re-create a container. We are actually telling an orchestration system to put this job in your queue.
+```
+Koitaro@MacBook-Pro-3 ~ % docker container ls
+CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS               NAMES
+2eaa8f902558        alpine:latest       "ping 8.8.8.8"      52 minutes ago      Up 52 minutes                           clever_yonath.2.i1ehu1gtvcarauyyd37w1yg44
+5ec148e81b5c        alpine:latest       "ping 8.8.8.8"      52 minutes ago      Up 52 minutes                           clever_yonath.3.ebujk9qe7fqzdfhexid4q5ruq
+81bdcb835a50        alpine:latest       "ping 8.8.8.8"      About an hour ago   Up About an hour                        clever_yonath.1.5gcgur2xp1ksjnligy0zmvgv5
+
+Koitaro@MacBook-Pro-3 ~ % docker container rm -f clever_yonath.1.5gcgur2xp1ksjnligy0zmvgv5
+clever_yonath.1.5gcgur2xp1ksjnligy0zmvgv5
+
+Koitaro@MacBook-Pro-3 ~ % docker service ls
+ID                  NAME                MODE                REPLICAS            IMAGE               PORTS
+pm8ioazf4q0q        clever_yonath       replicated          2/3                 alpine:latest
+
+# 1 second later
+Koitaro@MacBook-Pro-3 ~ % docker service ls
+ID                  NAME                MODE                REPLICAS            IMAGE               PORTS
+pm8ioazf4q0q        clever_yonath       replicated          3/3                 alpine:latest
+
+Koitaro@MacBook-Pro-3 ~ % docker service ps clever_yonath
+ID                  NAME                  IMAGE               NODE                DESIRED STATE       CURRENT STATE                ERROR                         PORTS
+n1ru2x2mrg87        clever_yonath.1       alpine:latest       docker-desktop      Running             Running about a minute ago
+5gcgur2xp1ks         \_ clever_yonath.1   alpine:latest       docker-desktop      Shutdown            Failed about a minute ago    "task: non-zero exit (137)"
+i1ehu1gtvcar        clever_yonath.2       alpine:latest       docker-desktop      Running             Running 55 minutes ago
+ebujk9qe7fqz        clever_yonath.3       alpine:latest       docker-desktop      Running             Running 55 minutes ago
+```
+## To remove all containers, we need to remove the service itself.
+```
+Koitaro@MacBook-Pro-3 ~ % docker service ls
+ID                  NAME                MODE                REPLICAS            IMAGE               PORTS
+pm8ioazf4q0q        clever_yonath       replicated          3/3                 alpine:latest
+
+Koitaro@MacBook-Pro-3 ~ % docker service ls
+ID                  NAME                MODE                REPLICAS            IMAGE               PORTS
+pm8ioazf4q0q        clever_yonath       replicated          3/3                 alpine:latest
+Koitaro@MacBook-Pro-3 ~ % docker service rm clever_yonath
+clever_yonath
+
+Koitaro@MacBook-Pro-3 ~ % docker service ls
+ID                  NAME                MODE                REPLICAS            IMAGE               PORTS
+
+Koitaro@MacBook-Pro-3 ~ % docker container ls
+CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS               NAMES
+```
+
