@@ -367,4 +367,101 @@ ID                  NAME                MODE                REPLICAS            
 Koitaro@MacBook-Pro-3 ~ % docker container ls
 CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS               NAMES
 ```
+# Multi Nodes
+## docker-machine install, and virtualbox
+```
+Koitaro@MacBook-Pro-3 ~ % docker-machine
+zsh: command not found: docker-machine
+Koitaro@MacBook-Pro-3 ~ % virtualbox
+Koitaro@MacBook-Pro-3 ~ % base=https://github.com/docker/machine/releases/download/v0.16.0 &&
+  curl -L $base/docker-machine-$(uname -s)-$(uname -m) >/usr/local/bin/docker-machine &&
+  chmod +x /usr/local/bin/docker-machine
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100   639  100   639    0     0    469      0  0:00:01  0:00:01 --:--:--   469
+100 32.0M  100 32.0M    0     0  1782k      0  0:00:18  0:00:18 --:--:-- 2072k
 
+Koitaro@MacBook-Pro-3 ~ % docker-machine version
+docker-machine version 0.16.0, build 702c267f
+
+Koitaro@MacBook-Pro-3 ~ % docker-machine
+Usage: docker-machine [OPTIONS] COMMAND [arg...]
+
+Create and manage machines running Docker.
+
+Version: 0.16.0, build 702c267f
+
+Author:
+  Docker Machine Contributors - <https://github.com/docker/machine>
+
+Options:
+  --debug, -D						Enable debug mode
+  --storage-path, -s "/Users/Koitaro/.docker/machine"	Configures storage path [$MACHINE_STORAGE_PATH]
+  --tls-ca-cert 					CA to verify remotes against [$MACHINE_TLS_CA_CERT]
+  --tls-ca-key 						Private key to generate certificates [$MACHINE_TLS_CA_KEY]
+  --tls-client-cert 					Client cert to use for TLS [$MACHINE_TLS_CLIENT_CERT]
+  --tls-client-key 					Private key used in client TLS auth [$MACHINE_TLS_CLIENT_KEY]
+  --github-api-token 					Token to use for requests to the Github API [$MACHINE_GITHUB_API_TOKEN]
+  --native-ssh						Use the native (Go-based) SSH implementation. [$MACHINE_NATIVE_SSH]
+  --bugsnag-api-token 					BugSnag API token for crash reporting [$MACHINE_BUGSNAG_API_TOKEN]
+  --help, -h						show help
+  --version, -v						print the version
+
+Commands:
+  active		Print which machine is active
+  config		Print the connection config for machine
+  create		Create a machine
+  env			Display the commands to set up the environment for the Docker client
+  inspect		Inspect information about a machine
+  ip			Get the IP address of a machine
+  kill			Kill a machine
+  ls			List machines
+  provision		Re-provision existing machines
+  regenerate-certs	Regenerate TLS Certificates for a machine
+  restart		Restart a machine
+  rm			Remove a machine
+  ssh			Log into or run a command on a machine with SSH.
+  scp			Copy files between machines
+  mount			Mount or unmount a directory from a machine with SSHFS.
+  start			Start a machine
+  status		Get the status of a machine
+  stop			Stop a machine
+  upgrade		Upgrade a machine to the latest version of Docker
+  url			Get the URL of a machine
+  version		Show the Docker Machine version or a machine docker version
+  help			Shows a list of commands or help for one command
+
+Run 'docker-machine COMMAND --help' for more information on a command.
+```
+## Let's create node1, node2, node3
+## do docker-machine create 3 times for node1, node2, node3
+```
+Koitaro@MacBook-Pro-3 ~ % docker-machine create node1
+Creating CA: /Users/Koitaro/.docker/machine/certs/ca.pem
+Creating client certificate: /Users/Koitaro/.docker/machine/certs/cert.pem
+Running pre-create checks...
+(node1) Image cache directory does not exist, creating it at /Users/Koitaro/.docker/machine/cache...
+(node1) No default Boot2Docker ISO found locally, downloading the latest release...
+(node1) Latest release for github.com/boot2docker/boot2docker is v19.03.5
+(node1) Downloading /Users/Koitaro/.docker/machine/cache/boot2docker.iso from https://github.com/boot2docker/boot2docker/releases/download/v19.03.5/boot2docker.iso...
+(node1) 0%....10%....20%....30%....40%....50%....60%....70%....80%....90%....100%
+Creating machine...
+(node1) Copying /Users/Koitaro/.docker/machine/cache/boot2docker.iso to /Users/Koitaro/.docker/machine/machines/node1/boot2docker.iso...
+(node1) Creating VirtualBox VM...
+(node1) Creating SSH key...
+(node1) Starting the VM...
+(node1) Check network to re-create if needed...
+(node1) Found a new host-only adapter: "vboxnet0"
+(node1) Waiting for an IP...
+Waiting for machine to be running, this may take a few minutes...
+Detecting operating system of created instance...
+Waiting for SSH to be available...
+Detecting the provisioner...
+Provisioning with boot2docker...
+Copying certs to the local machine directory...
+Copying certs to the remote machine...
+Setting Docker configuration on the remote daemon...
+Checking connection to Docker...
+Docker is up and running!
+To see how to connect your Docker Client to the Docker Engine running on this virtual machine, run: docker-machine env node1
+```
