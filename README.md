@@ -1334,3 +1334,6 @@ docker@node1:~$ docker service inspect drupal
 ![routing_mesh_2](https://github.com/NoriKaneshige/Docker_Swarm/blob/master/routing_mesh_2.png)
 ### The example below is showing what it would be like with external traffic comming in. One service called my-web with two taskes (two replicas). It applies them to two different nodes, each one of those nodes has a built-in load balancer on the external IP address. When it uses -p and publish it on a port 8080, any traffic that comes in to any of these three nodes hits that load balancer on port 8080. The load balancer decides which container should get the traffic and whether or not that traffic is on the local node, or it needs to send the traffic over the network to a different node.
 ![routing_mesh_3](https://github.com/NoriKaneshige/Docker_Swarm/blob/master/routing_mesh_3.png)
+## The overlay network driver is used for container communication across a swarm.
+## Services can be attached to multiple Docker networks, and a network can have many containers.
+## If you have a 3 node swarm, with node names as follows: node1, node2, and node3. You run 'docker service create -p 8088:80 nginx' from node1. Which node and port can you visit in a web browser to see the 'Welcome to Nginx' message?: Any of the 3 nodes:8080
