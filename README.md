@@ -1782,5 +1782,45 @@ ysapxwtm6k0u        voteapp_vote.2         bretfisher/examplevotingapp_vote:late
 
 
 ![stack-deploy-demo](stack-deploy-demo.gif)
+## Remove the stack
+```
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/swarm-stack-1$ docker stack --help
 
+Usage:	docker stack [OPTIONS] COMMAND
+
+Manage Docker stacks
+
+Options:
+      --orchestrator string   Orchestrator to use (swarm|kubernetes|all)
+
+Commands:
+  deploy      Deploy a new stack or update an existing stack
+  ls          List stacks
+  ps          List the tasks in the stack
+  rm          Remove one or more stacks
+  services    List the services in the stack
+
+Run 'docker stack COMMAND --help' for more information on a command.
+
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/swarm-stack-1$ docker stack ls
+NAME                SERVICES            ORCHESTRATOR
+voteapp             6                   Swarm
+
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/swarm-stack-1$ docker stack rm voteapp
+Removing service voteapp_db
+Removing service voteapp_redis
+Removing service voteapp_result
+Removing service voteapp_visualizer
+Removing service voteapp_vote
+Removing service voteapp_worker
+Removing network voteapp_backend
+Removing network voteapp_default
+Removing network voteapp_frontend
+
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/swarm-stack-1$ docker stack services voteapp
+Nothing found in stack: voteapp
+
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/swarm-stack-1$ docker container ls
+CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS               NAMES
+```
 
