@@ -784,6 +784,35 @@ ID                  NAME                IMAGE               NODE                
 docker@node1:~$ docker container ls
 CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS               NAMES
 ```
+# How to start running nodes in virtualbox
+## when you close everything, machines (we named a machine as node1,2,3) are powered off. So we need to start running machines first to use nodes in swarm. 
+[how-to-start-a-machine](how-to-start-a-machine.gif)
+```
+Koitaro@MacBook-Pro-3 ~ % docker swarm leave --force
+Node left the swarm.
+
+Koitaro@MacBook-Pro-3 ~ % docker swarm init
+Swarm initialized: current node (h8jh5jxmwpz8vgiawmtsjew01) is now a manager.
+
+To add a worker to this swarm, run the following command:
+
+    docker swarm join --token SWMTKN-1-4amnvqkbdew4nsafwm2ib9wvd4xuczzrafrdketsjj7ydq8rne-1ofouitkrzitm396vabjybtiz 192.168.65.3:2377
+
+To add a manager to this swarm, run 'docker swarm join-token manager' and follow the instructions.
+
+Koitaro@MacBook-Pro-3 ~ % docker node ls
+ID                            HOSTNAME            STATUS              AVAILABILITY        MANAGER STATUS      ENGINE VERSION
+h8jh5jxmwpz8vgiawmtsjew01 *   docker-desktop      Ready               Active              Leader              19.03.8
+
+Koitaro@MacBook-Pro-3 ~ % docker-machine ssh node1
+Error: Cannot run SSH command: Host "node1" is not running
+
+# after start running nodes
+Koitaro@MacBook-Pro-3 ~ % docker-machine ssh node1
+   ( '>')
+  /) TC (\   Core is distributed with ABSOLUTELY NO WARRANTY.
+ (/-_--_-\)           www.tinycorelinux.net
+```
 
 # Overlay, scalling out with overlay networking
 ![overlay](https://github.com/NoriKaneshige/Docker_Swarm/blob/master/overlay.png)
