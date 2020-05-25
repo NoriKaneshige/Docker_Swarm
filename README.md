@@ -1363,7 +1363,7 @@ Node left the swarm.
 ---
 # Let's create Multi-Service, Multi-Node Web App
 ![create_multi_service_node_app](https://github.com/NoriKaneshige/Docker_Swarm/blob/master/create_multi_service_node_app.png)
-![app_structure](https://github.com/NoriKaneshige/Docker_Swarm/blob/master/routing_app_structure.png)
+![app_structure](https://github.com/NoriKaneshige/Docker_Swarm/blob/master/app_structure.png)
 ### Traffic Flow: Users would be comming in on the voting-app part. The voting app has to push votes for this appplication into Radis and then the worker will be checking the Radis system for anythin in the queue and then be pushing the results into Postgres which will then be shown on a WebSockets backend that is live-updating as you are voting.
 ---
 ## Check all three nodes and all manager nodes. Do not forget to run all three machines from virtualbox.
