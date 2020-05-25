@@ -465,7 +465,11 @@ Checking connection to Docker...
 Docker is up and running!
 To see how to connect your Docker Client to the Docker Engine running on this virtual machine, run: docker-machine env node1
 ```
-## This time, I use play-with-docker.com
+## Let's open 3 command lines and go into node1, node2, node3
+![docker_machine_ssh](https://github.com/NoriKaneshige/Docker_Swarm/blob/master/docker_machine_ssh.png)
+```
+```
+# This time, I use play-with-docker.com
 [play-with-docker.com](https://labs.play-with-docker.com/)
 ## we need to specify IP address to adertise the swarm service on
 ```
