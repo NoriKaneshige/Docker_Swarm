@@ -819,10 +819,368 @@ Koitaro@MacBook-Pro-3 ~ % docker-machine ssh node1
 - Second, create our Postgres service called psql with network, password environment variable, and postgres image
 - Third, create the other service with name drupal, network we just created, port, and drupal image
 ### Now, the database and drupal website are running in nodes
-
 ![overlay](https://github.com/NoriKaneshige/Docker_Swarm/blob/master/overlay.png)
 ```
+Koitaro@MacBook-Pro-3 ~ % docker-machine ssh node1
+   ( '>')
+  /) TC (\   Core is distributed with ABSOLUTELY NO WARRANTY.
+ (/-_--_-\)           www.tinycorelinux.net
 
+docker@node1:~$ docker network create --driver overlay mydrupal
+3rh9ho1sjyb34mvop266mfte0
 
+docker@node1:~$ docker network ls
+NETWORK ID          NAME                DRIVER              SCOPE
+67e05c0d0eb5        bridge              bridge              local
+3755dbc21ddb        docker_gwbridge     bridge              local
+f31843e26e2b        host                host                local
+qepcjlcmncfp        ingress             overlay             swarm
+3rh9ho1sjyb3        mydrupal            overlay             swarm
+852f7fbf1ea8        none                null                local
 
+docker@node1:~$ docker service create --name psql --network mydrupal -e POSTGRES_PASSWORD=mypass postgres                                 
+iu39k9pnrfdypa7j1slloblop
+overall progress: 1 out of 1 tasks
+1/1: running
+verify: Service converged
+
+docker@node1:~$ docker service ls
+ID                  NAME                MODE                REPLICAS            IMAGE               PORTS
+iu39k9pnrfdy        psql                replicated          1/1                 postgres:latest
+
+# service psql is running on node1
+docker@node1:~$ docker service ps psql
+ID                  NAME                IMAGE               NODE                DESIRED STATE       CURRENT STATE           ERROR               PORTS
+t3lq6jqk7nhh        psql.1              postgres:latest     node1               Running             Running 2 minutes ago
 ```
+### Check the logs of container for psql.1 service, ID is filled by tab completion
+```
+docker@node1:~$ docker container logs psql.1.t3lq6jqk7nhh4y1b83rjhas5q
+The files belonging to this database system will be owned by user "postgres".
+This user must also own the server process.
+
+The database cluster will be initialized with locale "en_US.utf8".
+The default database encoding has accordingly been set to "UTF8".
+The default text search configuration will be set to "english".
+
+Data page checksums are disabled.
+
+fixing permissions on existing directory /var/lib/postgresql/data ... ok
+creating subdirectories ... ok
+selecting dynamic shared memory implementation ... posix
+selecting default max_connections ... 100
+selecting default shared_buffers ... 128MB
+selecting default time zone ... Etc/UTC
+creating configuration files ... ok
+running bootstrap script ... ok
+performing post-bootstrap initialization ... ok
+syncing data to disk ... ok
+
+initdb: warning: enabling "trust" authentication for local connections
+You can change this by editing pg_hba.conf or using the option -A, or
+--auth-local and --auth-host, the next time you run initdb.
+
+Success. You can now start the database server using:
+
+    pg_ctl -D /var/lib/postgresql/data -l logfile start
+
+waiting for server to start....2020-05-25 15:54:22.197 UTC [45] LOG:  starting PostgreSQL 12.3 (Debian 12.3-1.pgdg100+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 8.3.0-6) 8.3.0, 64-bit
+2020-05-25 15:54:22.198 UTC [45] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2020-05-25 15:54:22.211 UTC [46] LOG:  database system was shut down at 2020-05-25 15:54:21 UTC
+2020-05-25 15:54:22.215 UTC [45] LOG:  database system is ready to accept connections
+ done
+server started
+
+/usr/local/bin/docker-entrypoint.sh: ignoring /docker-entrypoint-initdb.d/*
+
+2020-05-25 15:54:22.288 UTC [45] LOG:  received fast shutdown request
+waiting for server to shut down....2020-05-25 15:54:22.289 UTC [45] LOG:  aborting any active transactions
+2020-05-25 15:54:22.293 UTC [45] LOG:  background worker "logical replication launcher" (PID 52) exited with exit code 1
+2020-05-25 15:54:22.294 UTC [47] LOG:  shutting down
+2020-05-25 15:54:22.303 UTC [45] LOG:  database system is shut down
+ done
+server stopped
+
+PostgreSQL init process complete; ready for start up.
+
+2020-05-25 15:54:22.405 UTC [1] LOG:  starting PostgreSQL 12.3 (Debian 12.3-1.pgdg100+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 8.3.0-6) 8.3.0, 64-bit
+2020-05-25 15:54:22.405 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+2020-05-25 15:54:22.405 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+2020-05-25 15:54:22.407 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2020-05-25 15:54:22.419 UTC [54] LOG:  database system was shut down at 2020-05-25 15:54:22 UTC
+2020-05-25 15:54:22.422 UTC [1] LOG:  database system is ready to accept connections
+```
+### Let's create the other service with name of the service, name of network, publishing port, and drupal image
+### drupal is runnning on node2, so now the database is running on node1 and the drupal website is running on node2
+```
+docker@node1:~$ docker service create --name drupal --network mydrupal -p 80:80 drupal
+j9ii5oryi4bbhq824zcvv9frw
+overall progress: 1 out of 1 tasks
+1/1: running
+verify: Service converged
+
+docker@node1:~$ docker service ls
+ID                  NAME                MODE                REPLICAS            IMAGE               PORTS
+j9ii5oryi4bb        drupal              replicated          1/1                 drupal:latest       *:80->80/tcp
+iu39k9pnrfdy        psql                replicated          1/1                 postgres:latest
+
+docker@node1:~$ docker service ps drupal
+ID                  NAME                IMAGE               NODE                DESIRED STATE       CURRENT STATE                ERROR               PORTS
+qvpto79pnimi        drupal.1            drupal:latest       node2               Running             Running about a minute ago
+```
+## Let's go to the site by using IP address of node
+## To check the IP address, you can use docker node inspect [node_name], and copy and paste the IP address in the browser
+```
+docker@node1:~$ docker node --help
+
+Usage:	docker node COMMAND
+
+Manage Swarm nodes
+
+Commands:
+  demote      Demote one or more nodes from manager in the swarm
+  inspect     Display detailed information on one or more nodes
+  ls          List nodes in the swarm
+  promote     Promote one or more nodes to manager in the swarm
+  ps          List tasks running on one or more nodes, defaults to current node
+  rm          Remove one or more nodes from the swarm
+  update      Update a node
+
+Run 'docker node COMMAND --help' for more information on a command.
+docker@node1:~$ docker node inspect node1
+[
+    {
+        "ID": "gojgdw59ie6h4jn2rdsdzlojj",
+        "Version": {
+            "Index": 81
+        },
+        "CreatedAt": "2020-05-25T01:58:29.59181711Z",
+        "UpdatedAt": "2020-05-25T15:53:29.843731511Z",
+        "Spec": {
+            "Labels": {},
+            "Role": "manager",
+            "Availability": "active"
+        },
+        "Description": {
+            "Hostname": "node1",
+            "Platform": {
+                "Architecture": "x86_64",
+                "OS": "linux"
+            },
+            "Resources": {
+                "NanoCPUs": 1000000000,
+                "MemoryBytes": 1037537280
+            },
+            "Engine": {
+                "EngineVersion": "19.03.5",
+                "Labels": {
+                    "provider": "virtualbox"
+                },
+                "Plugins": [
+                    {
+                        "Type": "Log",
+                        "Name": "awslogs"
+                    },
+                    {
+                        "Type": "Log",
+                        "Name": "fluentd"
+                    },
+                    {
+                        "Type": "Log",
+                        "Name": "gcplogs"
+                    },
+                    {
+                        "Type": "Log",
+                        "Name": "gelf"
+                    },
+                    {
+                        "Type": "Log",
+                        "Name": "journald"
+                    },
+                    {
+                        "Type": "Log",
+                        "Name": "json-file"
+                    },
+                    {
+                        "Type": "Log",
+                        "Name": "local"
+                    },
+                    {
+                        "Type": "Log",
+                        "Name": "logentries"
+                    },
+                    {
+                        "Type": "Log",
+                        "Name": "splunk"
+                    },
+                    {
+                        "Type": "Log",
+                        "Name": "syslog"
+                    },
+                    {
+                        "Type": "Network",
+                        "Name": "bridge"
+                    },
+                    {
+                        "Type": "Network",
+                        "Name": "host"
+                    },
+                    {
+                        "Type": "Network",
+                        "Name": "ipvlan"
+                    },
+                    {
+                        "Type": "Network",
+                        "Name": "macvlan"
+                    },
+                    {
+                        "Type": "Network",
+                        "Name": "null"
+                    },
+                    {
+                        "Type": "Network",
+                        "Name": "overlay"
+                    },
+                    {
+                        "Type": "Volume",
+                        "Name": "local"
+                    }
+                ]
+            },
+            "TLSInfo": {
+                "TrustRoot": "-----BEGIN CERTIFICATE-----\nMIIBajCCARCgAwIBAgIUX71MwwDf4+C9GRDqHLhsyAeLe1AwCgYIKoZIzj0EAwIw\nEzERMA8GA1UEAxMIc3dhcm0tY2EwHhcNMjAwNTI1MDE1MzAwWhcNNDAwNTIwMDE1\nMzAwWjATMREwDwYDVQQDEwhzd2FybS1jYTBZMBMGByqGSM49AgEGCCqGSM49AwEH\nA0IABN0kSLnsZvUHXeghW3S+vm5dvnUbEr8OBnkWvruVuCIh9GykirIK0CHPqUO4\nByVyixY8AxxE6eJ0c5y7rnt9ODijQjBAMA4GA1UdDwEB/wQEAwIBBjAPBgNVHRMB\nAf8EBTADAQH/MB0GA1UdDgQWBBQNgLrPHhGQ004Lm3xI+cq+tQsjTTAKBggqhkjO\nPQQDAgNIADBFAiEAutBtoljfzYssBoTLR5HbYdqqWsd9Oaw0wYrWkFFK28ACICWc\n1Gm83T0mZY47DvrvJTVTtcyNG0YxYUMstjKBCSLk\n-----END CERTIFICATE-----\n",
+                "CertIssuerSubject": "MBMxETAPBgNVBAMTCHN3YXJtLWNh",
+                "CertIssuerPublicKey": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE3SRIuexm9Qdd6CFbdL6+bl2+dRsSvw4GeRa+u5W4IiH0bKSKsgrQIc+pQ7gHJXKLFjwDHETp4nRznLuue304OA=="
+            }
+        },
+        "Status": {
+            "State": "ready",
+            "Addr": "192.168.99.100"
+        },
+        "ManagerStatus": {
+            "Reachability": "reachable",
+            "Addr": "192.168.99.100:2377"
+        }
+    }
+]
+docker@node1:~$ docker node inspect node2
+[
+    {
+        "ID": "p71mmbgxygp9pvq2xmwydjg32",
+        "Version": {
+            "Index": 90
+        },
+        "CreatedAt": "2020-05-25T01:58:41.250950113Z",
+        "UpdatedAt": "2020-05-25T16:02:30.120004859Z",
+        "Spec": {
+            "Labels": {},
+            "Role": "manager",
+            "Availability": "active"
+        },
+        "Description": {
+            "Hostname": "node2",
+            "Platform": {
+                "Architecture": "x86_64",
+                "OS": "linux"
+            },
+            "Resources": {
+                "NanoCPUs": 1000000000,
+                "MemoryBytes": 1037537280
+            },
+            "Engine": {
+                "EngineVersion": "19.03.5",
+                "Labels": {
+                    "provider": "virtualbox"
+                },
+                "Plugins": [
+                    {
+                        "Type": "Log",
+                        "Name": "awslogs"
+                    },
+                    {
+                        "Type": "Log",
+                        "Name": "fluentd"
+                    },
+                    {
+                        "Type": "Log",
+                        "Name": "gcplogs"
+                    },
+                    {
+                        "Type": "Log",
+                        "Name": "gelf"
+                    },
+                    {
+                        "Type": "Log",
+                        "Name": "journald"
+                    },
+                    {
+                        "Type": "Log",
+                        "Name": "json-file"
+                    },
+                    {
+                        "Type": "Log",
+                        "Name": "local"
+                    },
+                    {
+                        "Type": "Log",
+                        "Name": "logentries"
+                    },
+                    {
+                        "Type": "Log",
+                        "Name": "splunk"
+                    },
+                    {
+                        "Type": "Log",
+                        "Name": "syslog"
+                    },
+                    {
+                        "Type": "Network",
+                        "Name": "bridge"
+                    },
+                    {
+                        "Type": "Network",
+                        "Name": "host"
+                    },
+                    {
+                        "Type": "Network",
+                        "Name": "ipvlan"
+                    },
+                    {
+                        "Type": "Network",
+                        "Name": "macvlan"
+                    },
+                    {
+                        "Type": "Network",
+                        "Name": "null"
+                    },
+                    {
+                        "Type": "Network",
+                        "Name": "overlay"
+                    },
+                    {
+                        "Type": "Volume",
+                        "Name": "local"
+                    }
+                ]
+            },
+            "TLSInfo": {
+                "TrustRoot": "-----BEGIN CERTIFICATE-----\nMIIBajCCARCgAwIBAgIUX71MwwDf4+C9GRDqHLhsyAeLe1AwCgYIKoZIzj0EAwIw\nEzERMA8GA1UEAxMIc3dhcm0tY2EwHhcNMjAwNTI1MDE1MzAwWhcNNDAwNTIwMDE1\nMzAwWjATMREwDwYDVQQDEwhzd2FybS1jYTBZMBMGByqGSM49AgEGCCqGSM49AwEH\nA0IABN0kSLnsZvUHXeghW3S+vm5dvnUbEr8OBnkWvruVuCIh9GykirIK0CHPqUO4\nByVyixY8AxxE6eJ0c5y7rnt9ODijQjBAMA4GA1UdDwEB/wQEAwIBBjAPBgNVHRMB\nAf8EBTADAQH/MB0GA1UdDgQWBBQNgLrPHhGQ004Lm3xI+cq+tQsjTTAKBggqhkjO\nPQQDAgNIADBFAiEAutBtoljfzYssBoTLR5HbYdqqWsd9Oaw0wYrWkFFK28ACICWc\n1Gm83T0mZY47DvrvJTVTtcyNG0YxYUMstjKBCSLk\n-----END CERTIFICATE-----\n",
+                "CertIssuerSubject": "MBMxETAPBgNVBAMTCHN3YXJtLWNh",
+                "CertIssuerPublicKey": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE3SRIuexm9Qdd6CFbdL6+bl2+dRsSvw4GeRa+u5W4IiH0bKSKsgrQIc+pQ7gHJXKLFjwDHETp4nRznLuue304OA=="
+            }
+        },
+        "Status": {
+            "State": "ready",
+            "Addr": "0.0.0.0"
+        },
+        "ManagerStatus": {
+            "Leader": true,
+            "Reachability": "reachable",
+            "Addr": "192.168.99.101:2377"
+        }
+    }
+]
+```
+### This is telling us that it's able to talk to database across the nodes and set up the system!
+![drupal_site_working](https://github.com/NoriKaneshige/Docker_Swarm/blob/master/drupal_site_working.png)
+
