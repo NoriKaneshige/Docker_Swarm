@@ -1567,3 +1567,196 @@ backend
 docker@node1:~$ docker ps
 CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS               NAMES
 ```
+---
+# Stacks!
+### We created five different services above. They all have dependencies on each other, which gave us two different websites. We crafted the services list with all the values and options. We no longer need it. Previously, we created a service, specify multiple replicas of it, then it would go and create multiple tasks in the orchestrator, and those tasks would find certain servers, or nodes to put them on and they would create containers. In Stacks, we have multiple services, dozens of services in a single YAML file! Further, volumes, overlay networks in the compose file. A stack controls all of those things. Now, we can use a YAML file to do all those things, so we don't need to type in the service commands. Notice that the stack is only for one swarm.
+## example-voting-app-stack.yml
+```
+version: "3"
+services:
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379"
+    networks:
+      - frontend
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 2
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+  db:
+    image: postgres:9.4
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    networks:
+      - backend
+    environment:
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+  vote:
+    image: bretfisher/examplevotingapp_vote
+    ports:
+      - 5000:80
+    networks:
+      - frontend
+    depends_on:
+      - redis
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 2
+      restart_policy:
+        condition: on-failure
+  result:
+    image: bretfisher/examplevotingapp_result
+    ports:
+      - 5001:80
+    networks:
+      - backend
+    depends_on:
+      - db
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 2
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+
+  worker:
+    image: bretfisher/examplevotingapp_worker:java
+    networks:
+      - frontend
+      - backend
+    depends_on:
+      - db
+      - redis
+    deploy:
+      mode: replicated
+      replicas: 1
+      labels: [APP=VOTING]
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+        window: 120s
+      placement:
+        constraints: [node.role == manager]
+
+  visualizer:
+    image: dockersamples/visualizer
+    ports:
+      - "8080:8080"
+    stop_grace_period: 1m30s
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+
+networks:
+  frontend:
+  backend:
+
+volumes:
+  db-data:
+```
+## Let's try this yml file out in node1 wity docker stack deploy command. Don't forget to run machines from virtualbox.
+```
+Koitaro@MacBook-Pro-3 ~ % docker-machine ssh node1
+   ( '>')
+  /) TC (\   Core is distributed with ABSOLUTELY NO WARRANTY.
+ (/-_--_-\)           www.tinycorelinux.net
+
+docker@node1:~$ docker node ls
+ID                            HOSTNAME            STATUS              AVAILABILITY        MANAGER STATUS      ENGINE VERSION
+gojgdw59ie6h4jn2rdsdzlojj *   node1               Ready               Active              Reachable           19.03.5
+p71mmbgxygp9pvq2xmwydjg32     node2               Ready               Active              Leader              19.03.5
+tpk14payxih56xrjilciyfqcd     node3               Ready               Active              Reachable           19.03.5
+
+# go to the folder where the yml file is located.
+docker@node1:~$ pwd
+/home/docker
+docker@node1:~$ ls
+docker@node1:~$ cd ..
+docker@node1:/home$ cd ..
+docker@node1:/$ pwd
+/
+docker@node1:/$ Desktop
+-bash: Desktop: command not found
+docker@node1:/$ cd Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/swarm-stack-1
+
+# run the command
+# -c means compose
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/swarm-stack-1$ docker stack deploy -c example-voting-app-stack.yml voteapp
+Creating network voteapp_default
+Creating network voteapp_backend
+Creating network voteapp_frontend
+Creating service voteapp_result
+Creating service voteapp_worker
+Creating service voteapp_visualizer
+Creating service voteapp_redis
+Creating service voteapp_db
+Creating service voteapp_vote
+```
+## Let's investigate this stack
+```
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/swarm-stack-1$ docker stack
+
+Usage:	docker stack [OPTIONS] COMMAND
+
+Manage Docker stacks
+
+Options:
+      --orchestrator string   Orchestrator to use (swarm|kubernetes|all)
+
+Commands:
+  deploy      Deploy a new stack or update an existing stack
+  ls          List stacks
+  ps          List the tasks in the stack
+  rm          Remove one or more stacks
+  services    List the services in the stack
+
+Run 'docker stack COMMAND --help' for more information on a command.
+
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/swarm-stack-1$ docker stack ls
+NAME                SERVICES            ORCHESTRATOR
+voteapp             6                   Swarm
+
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/swarm-stack-1$ docker container ls
+CONTAINER ID        IMAGE                                     COMMAND                  CREATED             STATUS              PORTS               NAMES
+a277a32c2f16        postgres:9.4                              "docker-entrypoint.s…"   2 minutes ago       Up 2 minutes        5432/tcp            voteapp_db.1.rlmuwh9gkms71g3zgcpocm1ld
+4c0916513540        bretfisher/examplevotingapp_vote:latest   "gunicorn app:app -b…"   3 minutes ago       Up 3 minutes        80/tcp              voteapp_vote.2.ysapxwtm6k0u6di5qaw2l5u0v
+b57250c36394        bretfisher/examplevotingapp_worker:java   "java -XX:+UnlockExp…"   3 minutes ago       Up 3 minutes                            voteapp_worker.1.r3riq43jcoy4lj480rg38hkvf
+
+```
+## The commands below give us a complete picture of how this entire app is running.
+## docker stack service [stack_name]
+## docker stack ps voteapp
+```
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/swarm-stack-1$ docker stack services voteapp
+ID                  NAME                 MODE                REPLICAS            IMAGE                                       PORTS
+dsekszfmblwx        voteapp_vote         replicated          2/2                 bretfisher/examplevotingapp_vote:latest     *:5000->80/tcp
+i3tucbh4gjot        voteapp_worker       replicated          1/1                 bretfisher/examplevotingapp_worker:java
+jd4e0j68l2kc        voteapp_redis        replicated          1/1                 redis:alpine                                *:30000->6379/tcp
+o28bycphksl7        voteapp_db           replicated          1/1                 postgres:9.4
+tegh49k209gr        voteapp_visualizer   replicated          1/1                 dockersamples/visualizer:latest             *:8080->8080/tcp
+wq3kg0u0ftug        voteapp_result       replicated          1/1                 bretfisher/examplevotingapp_result:latest   *:5001->80/tcp
+
+
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/swarm-stack-1$ docker stack ps voteapp
+ID                  NAME                   IMAGE                                       NODE                DESIRED STATE       CURRENT STATE                ERROR               PORTS
+wdayugf6j9bw        voteapp_vote.1         bretfisher/examplevotingapp_vote:latest     node2               Running             Running 2 minutes ago
+rlmuwh9gkms7        voteapp_db.1           postgres:9.4                                node1               Running             Running 58 seconds ago
+tmqwmt0gc330        voteapp_redis.1        redis:alpine                                node3               Running             Running about a minute ago
+5a2yxjot04k0        voteapp_visualizer.1   dockersamples/visualizer:latest             node2               Running             Running 34 seconds ago
+r3riq43jcoy4        voteapp_worker.1       bretfisher/examplevotingapp_worker:java     node1               Running             Running 2 minutes ago
+gg85nva23nvh        voteapp_result.1       bretfisher/examplevotingapp_result:latest   node3               Running             Running about a minute ago
+ysapxwtm6k0u        voteapp_vote.2         bretfisher/examplevotingapp_vote:latest     node1               Running             Running 2 minutes ago
+```
