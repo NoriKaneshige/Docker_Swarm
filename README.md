@@ -367,7 +367,134 @@ ID                  NAME                MODE                REPLICAS            
 Koitaro@MacBook-Pro-3 ~ % docker container ls
 CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS               NAMES
 ```
-# Multi Nodes
+
+
+# This time, I use play-with-docker.com
+[play-with-docker.com](https://labs.play-with-docker.com/)
+## we need to specify IP address to adertise the swarm service on
+```
+[node1] (local) root@192.168.0.28 ~
+$ docker swarm init
+Error response from daemon: could not choose an IP address to advertise since this system has multiple addresses on different interfaces (192.168.0.28 on eth0 and 172.18.0.75 on eth1) - specify one with --advertise-addr
+
+[node1] (local) root@192.168.0.28 ~
+$ docker swarm init --advertise-addr 192.168.0.28
+Swarm initialized: current node (74hruvkd4py5eq90bbnijbsp0) is now a manager.
+
+To add a worker to this swarm, run the following command:
+
+    docker swarm join --token SWMTKN-1-1xn67gwo7uaqjlt9yplj2b58y1d44h57je81uga8fpk9cxvobt-bsnsq0o1s867q0mg13do0vkk3 192.168.0.28:2377
+
+To add a manager to this swarm, run 'docker swarm join-token manager' and follow the instructions.
+```
+## Let's add node2 in this swarm as a worker, by copying and pasting the code above in node2
+## Now, node2 is a part of swarm, and notice that we cannot use swarm command in node2 because node2 is not manager, just a worker. A worker doesn't have access to control the swarm.
+```
+[node2] (local) root@192.168.0.27 ~
+$ docker swarm join --token SWMTKN-1-1xn67gwo7uaqjlt9yplj2b58y1d44h57je81uga8fpk9cxvobt-bsnsq0o1s867q0mg13do0vkk3 192.168.0.28:2377
+This node joined a swarm as a worker.
+
+[node2] (local) root@192.168.0.27 ~
+$ docker node ls
+Error response from daemon: This node is not a swarm manager. Worker nodes can't be used to view or modify cluster state. Please run this command on a manager node or promote the current node to a manager.
+```
+## Check if the node is added
+```
+[node1] (local) root@192.168.0.28 ~
+$ docker node ls
+ID                            HOSTNAME            STATUS              AVAILABILITY        MANAGER STATUS      ENGINE VERSION
+74hruvkd4py5eq90bbnijbsp0 *   node1               Ready               Active              Leader              19.03.4
+v5aka5geemy6hi8hs4fbc1q6l     node2               Ready               Active                                  19.03.4
+```
+## Let's update node2 to be a manager
+```
+[node1] (local) root@192.168.0.28 ~
+$ docker node update --help
+
+Usage:  docker node update [OPTIONS] NODE
+
+Update a node
+
+Options:
+      --availability string   Availability of the node ("active"|"pause"|"drain")
+      --label-add list        Add or update a node label (key=value)
+      --label-rm list         Remove a node label if exists
+      --role string           Role of the node ("worker"|"manager")
+
+
+[node1] (local) root@192.168.0.28 ~
+$ docker node update --role manager node2
+node2
+
+[node1] (local) root@192.168.0.28 ~
+$ docker node ls
+ID                            HOSTNAME            STATUS              AVAILABILITY        MANAGER STATUS      ENGINE VERSION
+74hruvkd4py5eq90bbnijbsp0 *   node1               Ready               Active              Leader              19.03.4
+v5aka5geemy6hi8hs4fbc1q6l     node2               Ready               Active              Reachable           19.03.4
+```
+## This time, let's add node3 as manager by default
+## We need to get join-token from the original swarm, then copy and paste it in node3 for node3 to be a manager by default
+```
+[node1] (local) root@192.168.0.28 ~
+$ docker swarm join-token manager
+To add a manager to this swarm, run the following command:
+
+    docker swarm join --token SWMTKN-1-1xn67gwo7uaqjlt9yplj2b58y1d44h57je81uga8fpk9cxvobt-5h04p5igvyl83s40prntahi5x 192.168.0.28:2377
+
+[node3] (local) root@192.168.0.26 ~
+$ docker swarm join --token SWMTKN-1-1xn67gwo7uaqjlt9yplj2b58y1d44h57je81uga8fpk9cxvobt-5h04p5igvyl83s40prntahi5x 192.168.0.28:2377
+This node joined a swarm as a manager.
+
+[node1] (local) root@192.168.0.28 ~
+$ docker node ls
+ID                            HOSTNAME            STATUS              AVAILABILITY        MANAGER STATUS      ENGINE VERSION
+74hruvkd4py5eq90bbnijbsp0 *   node1               Ready               Active              Leader              19.03.4
+v5aka5geemy6hi8hs4fbc1q6l     node2               Ready               Active              Reachable           19.03.4
+821gtgucblcujt10x1nbt8zev     node3               Ready               Active              Reachable           19.03.4
+```
+## Now we have 3 node, redundant swarm with 3 managers.
+## Let's create a service with 3 replicas
+## We can operate the whole swarm from node1
+```
+[node1] (local) root@192.168.0.28 ~
+$ docker service create --replicas 3 alpine ping 8.8.8.8
+image alpine:latest could not be accessed on a registry to record
+its digest. Each node will access alpine:latest independently,
+possibly leading to different nodes running different
+versions of the image.
+
+rfifxglixz4qce1orqvxsh7tp
+overall progress: 3 out of 3 tasks 
+1/3: running   
+2/3: running   
+3/3: running   
+verify: Service converged 
+
+[node1] (local) root@192.168.0.28 ~
+$ docker service ls
+ID                  NAME                MODE                REPLICAS            IMAGE               PORTS
+rfifxglixz4q        gallant_cori        replicated          3/3                 alpine:latest       
+
+
+[node1] (local) root@192.168.0.28 ~
+$ docker node ps
+ID                  NAME                IMAGE               NODE                DESIRED STATE       CURRENT STATE                 ERROR                            PORTS
+qw5f6sdyntk0        gallant_cori.1      alpine:latest       node1               Shutdown            Rejected about a minute ago   "No such image: alpine:latest"   
+k5ohmcs104d2        gallant_cori.2      alpine:latest       node1               Shutdown            Rejected about a minute ago   "No such image: alpine:latest"   
+vkd9ov0c6yzw        gallant_cori.3      alpine:latest       node1               Shutdown            Rejected about a minute ago   "No such image: alpine:latest"   
+
+[node1] (local) root@192.168.0.28 ~
+$ docker service ps gallant_cori
+ID                  NAME                 IMAGE               NODE                DESIRED STATE       CURRENT STATE            ERROR                            PORTS
+3xmspdqjqtti        gallant_cori.1       alpine:latest       node2               Running             Running 5 minutes ago                 
+4lcuzo8zpw6v        gallant_cori.2       alpine:latest       node2               Running             Running 5 minutes ago                 
+rjfquzav07q5        gallant_cori.3       alpine:latest       node2               Running             Running 5 minutes ago                 
+```
+## 'docker swarm init' is how a single node initializes a swarm, and is automatically joined as a manager.
+## 'docker service update [service name] --replicas #' is to update the service and "scale up" the service to a desired amount. Bonus: a shorter way to do it is with a "docker service scale" command.
+## "docker node update --role" command can update a role of another node from a manager node.
+---
+# Multi Nodes with docker-machine and virtualbox
 ## docker-machine install, and virtualbox
 ```
 Koitaro@MacBook-Pro-3 ~ % docker-machine
@@ -658,131 +785,11 @@ docker@node1:~$ docker container ls
 CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS               NAMES
 ```
 
-
-# This time, I use play-with-docker.com
-[play-with-docker.com](https://labs.play-with-docker.com/)
-## we need to specify IP address to adertise the swarm service on
-```
-[node1] (local) root@192.168.0.28 ~
-$ docker swarm init
-Error response from daemon: could not choose an IP address to advertise since this system has multiple addresses on different interfaces (192.168.0.28 on eth0 and 172.18.0.75 on eth1) - specify one with --advertise-addr
-
-[node1] (local) root@192.168.0.28 ~
-$ docker swarm init --advertise-addr 192.168.0.28
-Swarm initialized: current node (74hruvkd4py5eq90bbnijbsp0) is now a manager.
-
-To add a worker to this swarm, run the following command:
-
-    docker swarm join --token SWMTKN-1-1xn67gwo7uaqjlt9yplj2b58y1d44h57je81uga8fpk9cxvobt-bsnsq0o1s867q0mg13do0vkk3 192.168.0.28:2377
-
-To add a manager to this swarm, run 'docker swarm join-token manager' and follow the instructions.
-```
-## Let's add node2 in this swarm as a worker, by copying and pasting the code above in node2
-## Now, node2 is a part of swarm, and notice that we cannot use swarm command in node2 because node2 is not manager, just a worker. A worker doesn't have access to control the swarm.
-```
-[node2] (local) root@192.168.0.27 ~
-$ docker swarm join --token SWMTKN-1-1xn67gwo7uaqjlt9yplj2b58y1d44h57je81uga8fpk9cxvobt-bsnsq0o1s867q0mg13do0vkk3 192.168.0.28:2377
-This node joined a swarm as a worker.
-
-[node2] (local) root@192.168.0.27 ~
-$ docker node ls
-Error response from daemon: This node is not a swarm manager. Worker nodes can't be used to view or modify cluster state. Please run this command on a manager node or promote the current node to a manager.
-```
-## Check if the node is added
-```
-[node1] (local) root@192.168.0.28 ~
-$ docker node ls
-ID                            HOSTNAME            STATUS              AVAILABILITY        MANAGER STATUS      ENGINE VERSION
-74hruvkd4py5eq90bbnijbsp0 *   node1               Ready               Active              Leader              19.03.4
-v5aka5geemy6hi8hs4fbc1q6l     node2               Ready               Active                                  19.03.4
-```
-## Let's update node2 to be a manager
-```
-[node1] (local) root@192.168.0.28 ~
-$ docker node update --help
-
-Usage:  docker node update [OPTIONS] NODE
-
-Update a node
-
-Options:
-      --availability string   Availability of the node ("active"|"pause"|"drain")
-      --label-add list        Add or update a node label (key=value)
-      --label-rm list         Remove a node label if exists
-      --role string           Role of the node ("worker"|"manager")
-
-
-[node1] (local) root@192.168.0.28 ~
-$ docker node update --role manager node2
-node2
-
-[node1] (local) root@192.168.0.28 ~
-$ docker node ls
-ID                            HOSTNAME            STATUS              AVAILABILITY        MANAGER STATUS      ENGINE VERSION
-74hruvkd4py5eq90bbnijbsp0 *   node1               Ready               Active              Leader              19.03.4
-v5aka5geemy6hi8hs4fbc1q6l     node2               Ready               Active              Reachable           19.03.4
-```
-## This time, let's add node3 as manager by default
-## We need to get join-token from the original swarm, then copy and paste it in node3 for node3 to be a manager by default
-```
-[node1] (local) root@192.168.0.28 ~
-$ docker swarm join-token manager
-To add a manager to this swarm, run the following command:
-
-    docker swarm join --token SWMTKN-1-1xn67gwo7uaqjlt9yplj2b58y1d44h57je81uga8fpk9cxvobt-5h04p5igvyl83s40prntahi5x 192.168.0.28:2377
-
-[node3] (local) root@192.168.0.26 ~
-$ docker swarm join --token SWMTKN-1-1xn67gwo7uaqjlt9yplj2b58y1d44h57je81uga8fpk9cxvobt-5h04p5igvyl83s40prntahi5x 192.168.0.28:2377
-This node joined a swarm as a manager.
-
-[node1] (local) root@192.168.0.28 ~
-$ docker node ls
-ID                            HOSTNAME            STATUS              AVAILABILITY        MANAGER STATUS      ENGINE VERSION
-74hruvkd4py5eq90bbnijbsp0 *   node1               Ready               Active              Leader              19.03.4
-v5aka5geemy6hi8hs4fbc1q6l     node2               Ready               Active              Reachable           19.03.4
-821gtgucblcujt10x1nbt8zev     node3               Ready               Active              Reachable           19.03.4
-```
-## Now we have 3 node, redundant swarm with 3 managers.
-## Let's create a service with 3 replicas
-## We can operate the whole swarm from node1
-```
-[node1] (local) root@192.168.0.28 ~
-$ docker service create --replicas 3 alpine ping 8.8.8.8
-image alpine:latest could not be accessed on a registry to record
-its digest. Each node will access alpine:latest independently,
-possibly leading to different nodes running different
-versions of the image.
-
-rfifxglixz4qce1orqvxsh7tp
-overall progress: 3 out of 3 tasks 
-1/3: running   
-2/3: running   
-3/3: running   
-verify: Service converged 
-
-[node1] (local) root@192.168.0.28 ~
-$ docker service ls
-ID                  NAME                MODE                REPLICAS            IMAGE               PORTS
-rfifxglixz4q        gallant_cori        replicated          3/3                 alpine:latest       
-
-
-[node1] (local) root@192.168.0.28 ~
-$ docker node ps
-ID                  NAME                IMAGE               NODE                DESIRED STATE       CURRENT STATE                 ERROR                            PORTS
-qw5f6sdyntk0        gallant_cori.1      alpine:latest       node1               Shutdown            Rejected about a minute ago   "No such image: alpine:latest"   
-k5ohmcs104d2        gallant_cori.2      alpine:latest       node1               Shutdown            Rejected about a minute ago   "No such image: alpine:latest"   
-vkd9ov0c6yzw        gallant_cori.3      alpine:latest       node1               Shutdown            Rejected about a minute ago   "No such image: alpine:latest"   
-
-[node1] (local) root@192.168.0.28 ~
-$ docker service ps gallant_cori
-ID                  NAME                 IMAGE               NODE                DESIRED STATE       CURRENT STATE            ERROR                            PORTS
-3xmspdqjqtti        gallant_cori.1       alpine:latest       node2               Running             Running 5 minutes ago                 
-4lcuzo8zpw6v        gallant_cori.2       alpine:latest       node2               Running             Running 5 minutes ago                 
-rjfquzav07q5        gallant_cori.3       alpine:latest       node2               Running             Running 5 minutes ago                 
-```
-## 'docker swarm init' is how a single node initializes a swarm, and is automatically joined as a manager.
-## 'docker service update [service name] --replicas #' is to update the service and "scale up" the service to a desired amount. Bonus: a shorter way to do it is with a "docker service scale" command.
-## "docker node update --role" command can update a role of another node from a manager node.
----
 # Overlay, scalling out with overlay networking
 ![overlay](https://github.com/NoriKaneshige/Docker_Swarm/blob/master/overlay.png)
+```
+Koitaro@MacBook-Pro-3 ~ % docker swarm leave --force
+Node left the swarm.
+
+
+```
