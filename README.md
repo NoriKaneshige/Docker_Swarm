@@ -786,7 +786,7 @@ CONTAINER ID        IMAGE               COMMAND             CREATED             
 ```
 # How to start running nodes in virtualbox
 ## when you close everything, machines (we named a machine as node1,2,3) are powered off. So we need to start running machines first to use nodes in swarm. 
-[how-to-start-a-machine](how-to-start-a-machine.gif)
+![how-to-start-a-machine](how-to-start-a-machine.gif)
 ```
 Koitaro@MacBook-Pro-3 ~ % docker swarm leave --force
 Node left the swarm.
