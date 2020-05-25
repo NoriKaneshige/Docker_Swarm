@@ -760,4 +760,5 @@ rjfquzav07q5        gallant_cori.3       alpine:latest       node2              
 ## 'docker service update [service name] --replicas #' is to update the service and "scale up" the service to a desired amount. Bonus: a shorter way to do it is with a "docker service scale" command.
 ## "docker node update --role" command can update a role of another node from a manager node.
 ---
-
+# Overlay, scalling out with overlay networking
+![overlay](https://github.com/NoriKaneshige/Docker_Swarm/blob/master/overlay.png)
