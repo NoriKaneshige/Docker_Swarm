@@ -1569,6 +1569,8 @@ CONTAINER ID        IMAGE               COMMAND             CREATED             
 ```
 ---
 # Stacks!
+![stacks](https://github.com/NoriKaneshige/Docker_Swarm/blob/master/stacks.png)
+![stacks_1](https://github.com/NoriKaneshige/Docker_Swarm/blob/master/stacks_1.png)
 ### We created five different services above. They all have dependencies on each other, which gave us two different websites. We crafted the services list with all the values and options. We no longer need it. Previously, we created a service, specify multiple replicas of it, then it would go and create multiple tasks in the orchestrator, and those tasks would find certain servers, or nodes to put them on and they would create containers. In Stacks, we have multiple services, dozens of services in a single YAML file! Further, volumes, overlay networks in the compose file. A stack controls all of those things. Now, we can use a YAML file to do all those things, so we don't need to type in the service commands. Notice that the stack is only for one swarm.
 ## example-voting-app-stack.yml
 ```
@@ -1735,6 +1737,18 @@ a277a32c2f16        postgres:9.4                              "docker-entrypoint
 4c0916513540        bretfisher/examplevotingapp_vote:latest   "gunicorn app:app -b…"   3 minutes ago       Up 3 minutes        80/tcp              voteapp_vote.2.ysapxwtm6k0u6di5qaw2l5u0v
 b57250c36394        bretfisher/examplevotingapp_worker:java   "java -XX:+UnlockExp…"   3 minutes ago       Up 3 minutes                            voteapp_worker.1.r3riq43jcoy4lj480rg38hkvf
 
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/swarm-stack-1$ docker network ls
+NETWORK ID          NAME                DRIVER              SCOPE
+a11cbd19fb74        bridge              bridge              local
+3755dbc21ddb        docker_gwbridge     bridge              local
+f31843e26e2b        host                host                local
+qepcjlcmncfp        ingress             overlay             swarm
+3rh9ho1sjyb3        mydrupal            overlay             swarm
+852f7fbf1ea8        none                null                local
+17ybibx3d5lb        voteapp_backend     overlay             swarm
+mzqsx9w1t1n2        voteapp_default     overlay             swarm
+wrbyyap3xioy        voteapp_frontend    overlay             swarm
+
 ```
 ## The commands below give us a complete picture of how this entire app is running.
 ## docker stack service [stack_name]
@@ -1760,3 +1774,10 @@ r3riq43jcoy4        voteapp_worker.1       bretfisher/examplevotingapp_worker:ja
 gg85nva23nvh        voteapp_result.1       bretfisher/examplevotingapp_result:latest   node3               Running             Running about a minute ago
 ysapxwtm6k0u        voteapp_vote.2         bretfisher/examplevotingapp_vote:latest     node1               Running             Running 2 minutes ago
 ```
+# Check the site with IP address in browser
+- vote: 5000:80
+- result: 5001:80
+- visualizer: 8080:8080
+![stack-deploy-demo](stack-deploy-demo.gif)
+
+
