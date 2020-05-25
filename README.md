@@ -1359,3 +1359,8 @@ Node left the swarm.
 ## The overlay network driver is used for container communication across a swarm.
 ## Services can be attached to multiple Docker networks, and a network can have many containers.
 ## If you have a 3 node swarm, with node names as follows: node1, node2, and node3. You run 'docker service create -p 8088:80 nginx' from node1. Which node and port can you visit in a web browser to see the 'Welcome to Nginx' message?: Any of the 3 nodes:8080
+
+---
+# Let's create Multi-Service, Multi-Node Web App
+![create_multi_service_node_app](https://github.com/NoriKaneshige/Docker_Swarm/blob/master/create_multi_service_node_app.png)
+![app_structure](https://github.com/NoriKaneshige/Docker_Swarm/blob/master/routing_app_structure.png)
