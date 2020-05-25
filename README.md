@@ -1782,7 +1782,7 @@ ysapxwtm6k0u        voteapp_vote.2         bretfisher/examplevotingapp_vote:late
 
 
 ![stack-deploy-demo](stack-deploy-demo.gif)
-## Remove the stack
+## Remove the stack, then exit node1 and power-off all machines in virtualbox
 ```
 docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/swarm-stack-1$ docker stack --help
 
