@@ -1183,4 +1183,7 @@ docker@node1:~$ docker node inspect node2
 ```
 ### This is telling us that it's able to talk to database across the nodes and set up the system!
 ![drupal_site_working](https://github.com/NoriKaneshige/Docker_Swarm/blob/master/drupal_site_working.png)
+## Let's check if the site is running on all three nodes, node1/node2/node3
+## Find the IP addresses by docker node inspect node1/2/3
+![site-running-on-all-three-nodes](site-running-on-all-three-nodes.gif)
 
