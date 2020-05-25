@@ -1183,7 +1183,149 @@ docker@node1:~$ docker node inspect node2
 ```
 ### This is telling us that it's able to talk to database across the nodes and set up the system!
 ![drupal_site_working](https://github.com/NoriKaneshige/Docker_Swarm/blob/master/drupal_site_working.png)
-## Let's check if the site is running on all three nodes, node1/node2/node3
+## Let's check if the site is running on all three nodes, node1/node2/node3 even though drupal seems running only on node2 when we do docker service ps drupal
 ## Find the IP addresses by docker node inspect node1/2/3
 ![site-running-on-all-three-nodes](site-running-on-all-three-nodes.gif)
+```
+docker@node1:~$ docker service ps drupal
+ID                  NAME                IMAGE               NODE                DESIRED STATE       CURRENT STATE            ERROR               PORTS
+qvpto79pnimi        drupal.1            drupal:latest       node2               Running             Running 29 minutes ago
+
+docker@node1:~$ docker service inspect drupal
+[
+    {
+        "ID": "j9ii5oryi4bbhq824zcvv9frw",
+        "Version": {
+            "Index": 86
+        },
+        "CreatedAt": "2020-05-25T16:02:30.044470482Z",
+        "UpdatedAt": "2020-05-25T16:02:30.047909516Z",
+        "Spec": {
+            "Name": "drupal",
+            "Labels": {},
+            "TaskTemplate": {
+                "ContainerSpec": {
+                    "Image": "drupal:latest@sha256:77186d5868c091352e396b279293dcdeb8fbbfb92950e9a7ea1f8bb7ab7a3b35",
+                    "Init": false,
+                    "StopGracePeriod": 10000000000,
+                    "DNSConfig": {},
+                    "Isolation": "default"
+                },
+                "Resources": {
+                    "Limits": {},
+                    "Reservations": {}
+                },
+                "RestartPolicy": {
+                    "Condition": "any",
+                    "Delay": 5000000000,
+                    "MaxAttempts": 0
+                },
+                "Placement": {
+                    "Platforms": [
+                        {
+                            "Architecture": "amd64",
+                            "OS": "linux"
+                        },
+                        {
+                            "OS": "linux"
+                        },
+                        {
+                            "OS": "linux"
+                        },
+                        {
+                            "Architecture": "arm64",
+                            "OS": "linux"
+                        },
+                        {
+                            "Architecture": "386",
+                            "OS": "linux"
+                        },
+                        {
+                            "Architecture": "mips64le",
+                            "OS": "linux"
+                        },
+                        {
+                            "Architecture": "ppc64le",
+                            "OS": "linux"
+                        },
+                        {
+                            "Architecture": "s390x",
+                            "OS": "linux"
+                        }
+                    ]
+                },
+                "Networks": [
+                    {
+                        "Target": "3rh9ho1sjyb34mvop266mfte0"
+                    }
+                ],
+                "ForceUpdate": 0,
+                "Runtime": "container"
+            },
+            "Mode": {
+                "Replicated": {
+                    "Replicas": 1
+                }
+            },
+            "UpdateConfig": {
+                "Parallelism": 1,
+                "FailureAction": "pause",
+                "Monitor": 5000000000,
+                "MaxFailureRatio": 0,
+                "Order": "stop-first"
+            },
+            "RollbackConfig": {
+                "Parallelism": 1,
+                "FailureAction": "pause",
+                "Monitor": 5000000000,
+                "MaxFailureRatio": 0,
+                "Order": "stop-first"
+            },
+            "EndpointSpec": {
+                "Mode": "vip",
+                "Ports": [
+                    {
+                        "Protocol": "tcp",
+                        "TargetPort": 80,
+                        "PublishedPort": 80,
+                        "PublishMode": "ingress"
+                    }
+                ]
+            }
+        },
+        "Endpoint": {
+            "Spec": {
+                "Mode": "vip",
+                "Ports": [
+                    {
+                        "Protocol": "tcp",
+                        "TargetPort": 80,
+                        "PublishedPort": 80,
+                        "PublishMode": "ingress"
+                    }
+                ]
+            },
+            "Ports": [
+                {
+                    "Protocol": "tcp",
+                    "TargetPort": 80,
+                    "PublishedPort": 80,
+                    "PublishMode": "ingress"
+                }
+            ],
+            "VirtualIPs": [
+                {
+                    "NetworkID": "qepcjlcmncfpejf8gg0x6s65x",
+                    "Addr": "10.0.0.5/24"
+                },
+                {
+                    "NetworkID": "3rh9ho1sjyb34mvop266mfte0",
+                    "Addr": "10.0.1.5/24"
+                }
+            ]
+        }
+    }
+]
+
+```
 
