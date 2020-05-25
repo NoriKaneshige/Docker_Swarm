@@ -1364,3 +1364,190 @@ Node left the swarm.
 # Let's create Multi-Service, Multi-Node Web App
 ![create_multi_service_node_app](https://github.com/NoriKaneshige/Docker_Swarm/blob/master/create_multi_service_node_app.png)
 ![app_structure](https://github.com/NoriKaneshige/Docker_Swarm/blob/master/routing_app_structure.png)
+### Traffic Flow: Users would be comming in on the voting-app part. The voting app has to push votes for this appplication into Radis and then the worker will be checking the Radis system for anythin in the queue and then be pushing the results into Postgres which will then be shown on a WebSockets backend that is live-updating as you are voting.
+---
+## Check all three nodes and all manager nodes. Do not forget to run all three machines from virtualbox.
+```
+Koitaro@MacBook-Pro-3 ~ % docker-machine ssh node1
+   ( '>')
+  /) TC (\   Core is distributed with ABSOLUTELY NO WARRANTY.
+ (/-_--_-\)           www.tinycorelinux.net
+
+docker@node1:~$ docker node ls
+ID                            HOSTNAME            STATUS              AVAILABILITY        MANAGER STATUS      ENGINE VERSION
+gojgdw59ie6h4jn2rdsdzlojj *   node1               Ready               Active              Leader              19.03.5
+p71mmbgxygp9pvq2xmwydjg32     node2               Ready               Active              Reachable           19.03.5
+tpk14payxih56xrjilciyfqcd     node3               Ready               Active              Reachable           19.03.5
+```
+## check no containers running and no services
+```
+docker@node1:~$ docker ps -a
+CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS               NAMES
+
+docker@node1:~$ docker service ls
+ID                  NAME                MODE                REPLICAS            IMAGE               PORTS
+```
+## README.md
+```
+# Assignment: Create A Multi-Service Multi-Node Web App
+
+## Goal: create networks, volumes, and services for a web-based "cats vs. dogs" voting app.
+Here is a basic diagram of how the 5 services will work:
+
+![diagram](./architecture.png)
+- All images are on Docker Hub, so you should use editor to craft your commands locally, then paste them into swarm shell (at least that's how I'd do it)
+- a `backend` and `frontend` overlay network are needed. Nothing different about them other then that backend will help protect database from the voting web app. (similar to how a VLAN setup might be in traditional architecture)
+- The database server should use a named volume for preserving data. Use the new `--mount` format to do this: `--mount type=volume,source=db-data,target=/var/lib/postgresql/data`
+
+### networks
+# we are just going to segment our different services into one or the other to help act like a little firewall that gives separation for protection.
+
+docker network create -d overlay backend
+docker network create -d overlay frontend
+
+### Services (names below should be service names)
+- vote
+    - bretfisher/examplevotingapp_vote
+    - web front end for users to vote dog/cat
+    - ideally published on TCP 80. Container listens on 80
+    - on frontend network
+    - 2+ replicas of this container
+docker service create --name vote -p 80:80 --network frontend --replicas 2 [image]
+docker service create --name vote -p 80:80 --network frontend --replicas 2 bretfisher/examplevotingapp_vote
+
+- redis
+    - redis:3.2
+    - key/value storage for incoming votes
+    - no public ports
+    - on frontend network
+    - 1 replica NOTE VIDEO SAYS TWO BUT ONLY ONE NEEDED
+docker service create --name redis --network frontend --replicas 1 [image]
+docker service create --name redis --network frontend --replicas 1 redis:3.2
+
+- worker
+    - bretfisher/examplevotingapp_worker:java
+    - backend processor of redis and storing results in postgres
+    - no public ports
+    - on frontend and backend networks
+    - 1 replica
+docker service create --name worker --network frontend --network backend [image]
+docker service create --name worker --network frontend --network backend bretfisher/examplevotingapp_worker:java
+
+- db
+    - postgres:9.4
+    - one named volume needed, pointing to /var/lib/postgresql/data
+    - on backend network
+    - 1 replica
+    - remember set env for password-less connections -e POSTGRES_HOST_AUTH_METHOD=trust
+Note: -v command is not compatible with docker services. Because for various reasons, services are going to be more complex than your typical docker run. And there are problems and limitations with the -v. We use --mount command for volumes now.
+docker service create --name db --network backend --mount type=volume,source=db-data,target=/var/lib/postgresql/data postgres:9.4
+
+- result
+    - bretfisher/examplevotingapp_result
+    - web app that shows results
+    - runs on high port since just for admins (lets imagine)
+    - so run on a high port of your choosing (I choose 5001), container listens on 80
+    - on backend network
+    - 1 replica
+docker service create --name result --network backend -p 5001:80 bretfisher/examplevotingapp_result
+
+
+### codes
+docker network create -d overlay backend
+docker network create -d overlay frontend
+docker service create --name vote -p 80:80 --network frontend --replicas 2 bretfisher/examplevotingapp_vote
+docker service create --name redis --network frontend redis:3.2
+docker service create --name db --network backend -e POSTGRES_HOST_AUTH_METHOD=trust --mount type=volume,source=db-data,target=/var/lib/postgresql/data postgres:9.4
+docker service create --name worker --network frontend --network backend bretfisher/examplevotingapp_worker:java
+docker service create --name result --network backend -p 5001:80 bretfisher/examplevotingapp_result
+```
+## Let's put them in node1 to create all services
+### Note: db service was not created well, so I stopped and removed the incomplete service, then re-run docker service create command for db service.
+```
+docker@node1:~$ docker network create -d overlay backend
+9corapmb8kyhti4zgpm19rmnj
+
+docker@node1:~$ docker network create -d overlay frontend
+nl54kuf4fsbw0tbvu2zys63pq
+
+<ote -p 80:80 --network frontend --replicas 2 bretfisher/examplevotingapp_vote
+62u1wmp90syzyt26a05cf9a9n
+overall progress: 2 out of 2 tasks
+1/2: running   [==================================================>]
+2/2: running   [==================================================>]
+verify: Service converged
+
+docker@node1:~$ docker service create --name redis --network frontend redis:3.2
+vlqrxxviobcor420eov7vz96b
+overall progress: 1 out of 1 tasks
+1/1: running   [==================================================>]
+verify: Service converged
+
+docker@node1:~$ docker service create --name db --network backend -e POSTGRES_HOST_AUTH_METHOD=trust --mount type=volume,source=db-data,target=/var/lib/postgresql/data postgres:9.4
+j7hrddirbugrrhmxqxkhtwvn6
+overall progress: 0 out of 1 tasks
+1/1: preparing [=================================>                 ]
+^COperation continuing in background.
+Use `docker service ps j7hrddirbugrrhmxqxkhtwvn6` to check progress.
+
+docker@node1:~$ docker service create --name db --network backend -e POSTGRES_HOST_AUTH_METHOD=trust --mount type=volume,source=db-data,target=/var/lib/postgresql/data postgres:9.4
+Error response from daemon: rpc error: code = AlreadyExists desc = name conflicts with an existing object: service db already exists
+
+docker@node1:~$ docker service ls
+ID                  NAME                MODE                REPLICAS            IMAGE                                     PORTS
+j7hrddirbugr        db                  replicated          0/1                 postgres:9.4
+vlqrxxviobco        redis               replicated          1/1                 redis:3.2
+62u1wmp90syz        vote                replicated          2/2                 bretfisher/examplevotingapp_vote:latest   *:80->80/tcp
+
+docker@node1:~$ docker service rm db
+db
+docker@node1:~$ docker service create --name db --network backend -e POSTGRES_HOST_AUTH_METHOD=trust --mount type=volume,source=db-data,target=/var/lib/postgresql/data postgres:9.4
+dtokxicdbcjgjn0jm4d4x9iks
+overall progress: 1 out of 1 tasks
+1/1: running   [==================================================>]
+verify: Service converged
+
+docker@node1:~$ docker service create --name worker --network frontend --network backend bretfisher/examplevotingapp_worker:java
+ncbaz716m9aa2m9xl71rl0ncj
+overall progress: 1 out of 1 tasks
+1/1: running   [==================================================>]
+verify: Service converged
+
+docker@node1:~$ docker service create --name result --network backend -p 5001:80 bretfisher/examplevotingapp_result
+oraif5p0bcp2dq7f70c0sdc0w
+overall progress: 1 out of 1 tasks
+1/1: running   [==================================================>]
+verify: Service converged
+```
+## Check if all services are created and running successrully, check each one of them.
+![voting-app-demo](voting-app-demo.gif)
+```
+docker@node1:~$ docker service ls
+ID                  NAME                MODE                REPLICAS            IMAGE                                       PORTS
+dtokxicdbcjg        db                  replicated          1/1                 postgres:9.4
+vlqrxxviobco        redis               replicated          1/1                 redis:3.2
+oraif5p0bcp2        result              replicated          1/1                 bretfisher/examplevotingapp_result:latest   *:5001->80/tcp
+62u1wmp90syz        vote                replicated          2/2                 bretfisher/examplevotingapp_vote:latest     *:80->80/tcp
+ncbaz716m9aa        worker              replicated          1/1                 bretfisher/examplevotingapp_worker:java
+
+docker@node1:~$ docker service ps db
+ID                  NAME                IMAGE               NODE                DESIRED STATE       CURRENT STATE           ERROR               PORTS
+15ejyaek5aw5        db.1                postgres:9.4        node3               Running             Running 7 minutes ago
+
+docker@node1:~$ docker service ps redis
+ID                  NAME                IMAGE               NODE                DESIRED STATE       CURRENT STATE            ERROR               PORTS
+1amcwny2flqq        redis.1             redis:3.2           node3               Running             Running 26 minutes ago
+
+docker@node1:~$ docker service ps result
+ID                  NAME                IMAGE                                       NODE                DESIRED STATE       CURRENT STATE           ERROR               PORTS
+yv0rif5vgayh        result.1            bretfisher/examplevotingapp_result:latest   node2               Running             Running 5 minutes ago
+
+docker@node1:~$ docker service ps vote
+ID                  NAME                IMAGE                                     NODE                DESIRED STATE       CURRENT STATE            ERROR               PORTS
+88nw9ttrsosy        vote.1              bretfisher/examplevotingapp_vote:latest   node1               Running             Running 27 minutes ago
+mu2sa9rfybis        vote.2              bretfisher/examplevotingapp_vote:latest   node2               Running             Running 27 minutes ago
+
+docker@node1:~$ docker service ps worker
+ID                  NAME                IMAGE                                     NODE                DESIRED STATE       CURRENT STATE           ERROR               PORTS
+asipgcpffu45        worker.1            bretfisher/examplevotingapp_worker:java   node1               Running             Running 6 minutes ago
+```
