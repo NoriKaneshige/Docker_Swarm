@@ -1570,7 +1570,7 @@ CONTAINER ID        IMAGE               COMMAND             CREATED             
 ---
 # Stacks!
 ![stacks](https://github.com/NoriKaneshige/Docker_Swarm/blob/master/stacks.png)
-![stacks_1](https://github.com/NoriKaneshige/Docker_Swarm/blob/master/stacks_1.png)
+![stack_1](https://github.com/NoriKaneshige/Docker_Swarm/blob/master/stack_1.png)
 ### We created five different services above. They all have dependencies on each other, which gave us two different websites. We crafted the services list with all the values and options. We no longer need it. Previously, we created a service, specify multiple replicas of it, then it would go and create multiple tasks in the orchestrator, and those tasks would find certain servers, or nodes to put them on and they would create containers. In Stacks, we have multiple services, dozens of services in a single YAML file! Further, volumes, overlay networks in the compose file. A stack controls all of those things. Now, we can use a YAML file to do all those things, so we don't need to type in the service commands. Notice that the stack is only for one swarm.
 ## example-voting-app-stack.yml
 ```
