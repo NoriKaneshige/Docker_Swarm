@@ -1551,3 +1551,19 @@ docker@node1:~$ docker service ps worker
 ID                  NAME                IMAGE                                     NODE                DESIRED STATE       CURRENT STATE           ERROR               PORTS
 asipgcpffu45        worker.1            bretfisher/examplevotingapp_worker:java   node1               Running             Running 6 minutes ago
 ```
+## Remove the services and networks, then exit node1 and power-off all three machines in virtualbox
+```
+docker@node1:~$ docker service rm db redis result vote worker
+db
+redis
+result
+vote
+worker
+
+docker@node1:~$ docker network rm frontend backend
+frontend
+backend
+
+docker@node1:~$ docker ps
+CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS               NAMES
+```
