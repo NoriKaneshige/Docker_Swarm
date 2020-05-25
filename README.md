@@ -1779,6 +1779,8 @@ ysapxwtm6k0u        voteapp_vote.2         bretfisher/examplevotingapp_vote:late
 - result: 5001:80
 - visualizer: 8080:8080
 <br>
+
+
 ![stack-deploy-demo](stack-deploy-demo.gif)
 
 
