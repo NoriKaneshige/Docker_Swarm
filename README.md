@@ -786,7 +786,7 @@ CONTAINER ID        IMAGE               COMMAND             CREATED             
 ```
 # How to start running nodes in virtualbox
 ## when you close everything, machines (we named a machine as node1,2,3) are powered off. So we need to start running machines first to use nodes in swarm. 
-![how-to-start-a-machine](how-to-start-a-machine.gif)
+![how-to-start-running-a-machine-node](how-to-start-running-a-machine-node.gif)
 ```
 Koitaro@MacBook-Pro-3 ~ % docker swarm leave --force
 Node left the swarm.
@@ -807,7 +807,7 @@ h8jh5jxmwpz8vgiawmtsjew01 *   docker-desktop      Ready               Active    
 Koitaro@MacBook-Pro-3 ~ % docker-machine ssh node1
 Error: Cannot run SSH command: Host "node1" is not running
 
-# after start running nodes
+# after start running a machine named node1
 Koitaro@MacBook-Pro-3 ~ % docker-machine ssh node1
    ( '>')
   /) TC (\   Core is distributed with ABSOLUTELY NO WARRANTY.
