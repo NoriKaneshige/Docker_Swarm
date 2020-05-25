@@ -813,12 +813,16 @@ Koitaro@MacBook-Pro-3 ~ % docker-machine ssh node1
   /) TC (\   Core is distributed with ABSOLUTELY NO WARRANTY.
  (/-_--_-\)           www.tinycorelinux.net
 ```
-
 # Overlay, scalling out with overlay networking
+### Let's try deploying the Drupal example with Postgres Database as services, and create an Overlay network for them to talk to each other.
+- First, create a network called mydrupal with driver overlay
+- Second, create our Postgres service called psql with network, password environment variable, and postgres image
+- Third, create the other service with name drupal, network we just created, port, and drupal image
+### Now, the database and drupal website are running in nodes
+
 ![overlay](https://github.com/NoriKaneshige/Docker_Swarm/blob/master/overlay.png)
 ```
-Koitaro@MacBook-Pro-3 ~ % docker swarm leave --force
-Node left the swarm.
+
 
 
 ```
