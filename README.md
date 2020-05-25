@@ -759,3 +759,5 @@ rjfquzav07q5        gallant_cori.3       alpine:latest       node2              
 ## 'docker swarm init' is how a single node initializes a swarm, and is automatically joined as a manager.
 ## 'docker service update [service name] --replicas #' is to update the service and "scale up" the service to a desired amount. Bonus: a shorter way to do it is with a "docker service scale" command.
 ## "docker node update --role" command can update a role of another node from a manager node.
+---
+
