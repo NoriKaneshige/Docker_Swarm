@@ -468,7 +468,173 @@ To see how to connect your Docker Client to the Docker Engine running on this vi
 ## Let's open 3 command lines and go into node1, node2, node3
 ![docker_machine_ssh](https://github.com/NoriKaneshige/Docker_Swarm/blob/master/docker_machine_ssh.png)
 ```
+Koitaro@MacBook-Pro-3 ~ % docker-machine ssh node1
+   ( '>')
+  /) TC (\   Core is distributed with ABSOLUTELY NO WARRANTY.
+ (/-_--_-\)           www.tinycorelinux.net
+
+docker@node1:~$ docker info
+
+Koitaro@MacBook-Pro-3 ~ % docker-machine ssh node2
+   ( '>')
+  /) TC (\   Core is distributed with ABSOLUTELY NO WARRANTY.
+ (/-_--_-\)           www.tinycorelinux.net
+
+docker@node2:~$
+
+Koitaro@MacBook-Pro-3 ~ % docker-machine ssh node3
+   ( '>')
+  /) TC (\   Core is distributed with ABSOLUTELY NO WARRANTY.
+ (/-_--_-\)           www.tinycorelinux.net
+
+docker@node3:~$
 ```
+## When you do docker swarm init, it wants us to specify an IP address to advertise the Swarm service on!
+## We want to use an IP address that is accessible from the other servers.
+```
+docker@node1:~$ docker swarm init
+Error response from daemon: could not choose an IP address to advertise since this system has multiple addresses on different interfaces (10.0.2.15 on eth0 and 192.168.99.100 on eth1) - specify one with --advertise-addr
+
+docker@node1:~$ docker swarm init --advertise-addr 10.0.2.15
+Swarm initialized: current node (4nvrt57791ae1j3cb1b6h3ksr) is now a manager.
+
+To add a worker to this swarm, run the following command:
+
+    docker swarm join --token SWMTKN-1-0w9m13lpppet7r3cpjtkcam6uhaeb8gvnl3wq7sr2nqjamyu0q-6tchckkfd3cfvd4bfh2adqnw9 10.0.2.15:2377
+
+To add a manager to this swarm, run 'docker swarm join-token manager' and follow the instructions.
+
+```
+## Now, let's let node2 join the swarm as a worker, just copy and paste on node2 in the command line.
+### I got an error, This is probably because I am running Virtual Box. This mean that some of your interfaces are shared with other VMs and the host. If you run ifconfig on your VMs and host, Choose the interface which exhibit different IPs for every machine VM. I had this problem, too and figured out that the eth0 IPs were the same on every machine. Of course, this cannot work. eth1 also had different IPs for every machine.
+```
+<m6uhaeb8gvnl3wq7sr2nqjamyu0q-6tchckkfd3cfvd4bfh2adqnw9 10.0.2.15:2377
+Error response from daemon: rpc error: code = Unavailable desc = all SubConns are in TransientFailure, latest connection error: connection error: desc = "transport: Error while dialing dial tcp 10.0.2.15:2377: connect: connection refused"
+
+docker@node1:~$ docker swarm leave --force
+Node left the swarm.
+```
+## Instead, I used eth1 when I did docker swarm init, instead of eth0
+## Then, let node2 join the swarm, successfully. Now, node2 is a part of the swarm.
+```
+docker@node1:~$ docker swarm init --advertise-addr 192.168.99.100
+Swarm initialized: current node (gojgdw59ie6h4jn2rdsdzlojj) is now a manager.
+
+To add a worker to this swarm, run the following command:
+
+    docker swarm join --token SWMTKN-1-1eh4g3srww28yxghcwvvklq8npg5dd3nkm5v5v2tpnw9rth6t4-b25pukbfakc3rjolt4vk6xqq5 192.168.99.100:2377
+
+To add a manager to this swarm, run 'docker swarm join-token manager' and follow the instructions.
+
+docker@node2:~$ docker swarm join --token SWMTKN-1-1eh4g3srww28yxghcwvvklq8npg5dd3nkm5v5v2tpnw9rth6t4-b25pukbfakc3rjolt4vk6xqq5 192.168.99.100:2377
+This node joined a swarm as a worker.
+```
+## Let's check if I have two nodes working. Notice that node2 is a worker, not a manager.
+```
+docker@node1:~$ docker node ls
+ID                            HOSTNAME            STATUS              AVAILABILITY        MANAGER STATUS      ENGINE VERSION
+gojgdw59ie6h4jn2rdsdzlojj *   node1               Ready               Active              Leader              19.03.5
+p71mmbgxygp9pvq2xmwydjg32     node2               Ready               Active                                  19.03.5
+```
+## Let's update node2 as a manager
+## Now, node2 is also a manager
+```
+docker@node1:~$ docker node --help
+
+Usage:	docker node COMMAND
+
+Manage Swarm nodes
+
+Commands:
+  demote      Demote one or more nodes from manager in the swarm
+  inspect     Display detailed information on one or more nodes
+  ls          List nodes in the swarm
+  promote     Promote one or more nodes to manager in the swarm
+  ps          List tasks running on one or more nodes, defaults to current node
+  rm          Remove one or more nodes from the swarm
+  update      Update a node
+
+Run 'docker node COMMAND --help' for more information on a command.
+
+docker@node1:~$ docker node update --help
+
+Usage:	docker node update [OPTIONS] NODE
+
+Update a node
+
+Options:
+      --availability string   Availability of the node ("active"|"pause"|"drain")
+      --label-add list        Add or update a node label (key=value)
+      --label-rm list         Remove a node label if exists
+      --role string           Role of the node ("worker"|"manager")
+      
+docker@node1:~$ docker node update --role manager node2
+node2
+
+docker@node1:~$ docker node ls
+ID                            HOSTNAME            STATUS              AVAILABILITY        MANAGER STATUS      ENGINE VERSION
+gojgdw59ie6h4jn2rdsdzlojj *   node1               Ready               Active              Leader              19.03.5
+p71mmbgxygp9pvq2xmwydjg32     node2               Ready               Active              Reachable           19.03.5
+```
+## Let's add node3 into the swarm as a manager by default
+## we need to get join-token manager, and copy/paste it in node3
+## Now, all three nodes are managers and node1 is leader
+```
+docker@node1:~$ docker swarm join-token manager
+To add a manager to this swarm, run the following command:
+
+    docker swarm join --token SWMTKN-1-1eh4g3srww28yxghcwvvklq8npg5dd3nkm5v5v2tpnw9rth6t4-6gajne8y5as6qzvfmst6hg0ff 192.168.99.100:2377
+
+docker@node3:~$ docker swarm join --token SWMTKN-1-1eh4g3srww28yxghcwvvklq8npg5dd3nkm5v5v2tpnw9rth6t4-6gajne8y5as6qzvfmst6hg0ff 192.168.99.100:2377
+This node joined a swarm as a manager.
+
+docker@node1:~$ docker node ls
+ID                            HOSTNAME            STATUS              AVAILABILITY        MANAGER STATUS      ENGINE VERSION
+gojgdw59ie6h4jn2rdsdzlojj *   node1               Ready               Active              Leader              19.03.5
+p71mmbgxygp9pvq2xmwydjg32     node2               Ready               Active              Reachable           19.03.5
+tpk14payxih56xrjilciyfqcd     node3               Ready               Active              Reachable           19.03.5
+```
+## Now we have 3 node, redundant swarm with 3 managers.
+## Let's create a service with 3 replicas
+## We can operate the whole swarm from node1
+```
+docker@node1:~$ docker service create --replicas 3 alpine ping 8.8.8.8
+wwa38vyp3132fjwqa9yomy5br
+overall progress: 3 out of 3 tasks
+1/3: running
+2/3: running
+3/3: running
+verify: Service converged
+
+docker@node1:~$ docker service ls
+ID                  NAME                  MODE                REPLICAS            IMAGE               PORTS
+wwa38vyp3132        flamboyant_einstein   replicated          3/3                 alpine:latest
+```
+## Let's check if my local node is running a container/task
+## we can also specify node
+```
+docker@node1:~$ docker node ps
+ID                  NAME                    IMAGE               NODE                DESIRED STATE       CURRENT STATE           ERROR               PORTS
+u1zgdp8eh2lp        flamboyant_einstein.3   alpine:latest       node1               Running             Running 2 minutes ago
+
+docker@node1:~$ docker node ps node2
+ID                  NAME                    IMAGE               NODE                DESIRED STATE       CURRENT STATE           ERROR               PORTS
+p6cl826qeq2h        flamboyant_einstein.1   alpine:latest       node2               Running             Running 3 minutes ago
+
+docker@node1:~$ docker node ps node3
+ID                  NAME                    IMAGE               NODE                DESIRED STATE       CURRENT STATE           ERROR               PORTS
+3fzbrso28iqd        flamboyant_einstein.2   alpine:latest       node3               Running             Running 3 minutes ago
+```
+## we can also see the full list by docker service ps [name_of_our_service], listing all 3 tasks/containers
+```
+docker@node1:~$ docker service ps flamboyant_einstein
+ID                  NAME                    IMAGE               NODE                DESIRED STATE       CURRENT STATE           ERROR               PORTS
+p6cl826qeq2h        flamboyant_einstein.1   alpine:latest       node2               Running             Running 5 minutes ago
+3fzbrso28iqd        flamboyant_einstein.2   alpine:latest       node3               Running             Running 5 minutes ago
+u1zgdp8eh2lp        flamboyant_einstein.3   alpine:latest       node1               Running             Running 5 minutes ago
+```
+
+
 # This time, I use play-with-docker.com
 [play-with-docker.com](https://labs.play-with-docker.com/)
 ## we need to specify IP address to adertise the swarm service on
