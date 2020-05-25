@@ -1334,6 +1334,21 @@ psql
 
 docker@node1:~$ docker service ls
 ID                  NAME                MODE                REPLICAS            IMAGE               PORTS
+
+# exit from node1
+docker@node1:~$ exit
+logout
+exit status 130
+
+# open virtualbox and power-off all three machines
+Koitaro@MacBook-Pro-3 ~ % virtualbox
+^C
+
+# leave swarm
+Koitaro@MacBook-Pro-3 ~ % docker swarm leave
+Error response from daemon: You are attempting to leave the swarm on a node that is participating as a manager. Removing the last manager erases all current state of the swarm. Use `--force` to ignore this message.
+Koitaro@MacBook-Pro-3 ~ % docker swarm leave --force
+Node left the swarm.
 ```
 ## Routing Mesh
 ### If I create a service, and I tell it to have three replicas and create 3 tasks with 3 containers, on 3 nodes. Inside of the overlay network, it's creating a virtual IP that's mapped to the DNS name of the service. And the service, by default, the DNS name is the name of the service. Here, I create a service called my-web, and any other containers I have in my overlay networks that need to talk to that service inside the swarm, only have to worry about using the my-web DNS. The virtual IP properly load bounces the traffic amoungst all the tasks in that service.
