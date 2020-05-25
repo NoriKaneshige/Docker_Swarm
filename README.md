@@ -1327,6 +1327,13 @@ docker@node1:~$ docker service inspect drupal
     }
 ]
 
+# remove created services
+docker@node1:~$ docker service rm drupal psql
+drupal
+psql
+
+docker@node1:~$ docker service ls
+ID                  NAME                MODE                REPLICAS            IMAGE               PORTS
 ```
 ## Routing Mesh
 ### If I create a service, and I tell it to have three replicas and create 3 tasks with 3 containers, on 3 nodes. Inside of the overlay network, it's creating a virtual IP that's mapped to the DNS name of the service. And the service, by default, the DNS name is the name of the service. Here, I create a service called my-web, and any other containers I have in my overlay networks that need to talk to that service inside the swarm, only have to worry about using the my-web DNS. The virtual IP properly load bounces the traffic amoungst all the tasks in that service.
