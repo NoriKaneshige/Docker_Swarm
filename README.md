@@ -1183,7 +1183,7 @@ docker@node1:~$ docker node inspect node2
 ```
 ### This is telling us that it's able to talk to database across the nodes and set up the system!
 ![drupal_site_working](https://github.com/NoriKaneshige/Docker_Swarm/blob/master/drupal_site_working.png)
-## Let's check if the site is running on all three nodes, node1/node2/node3 even though drupal seems running only on node2 when we do docker service ps drupal
+### Let's check if the site is running on all three nodes, node1/node2/node3 even though drupal seems running only on node2 when we do docker service ps drupal. Actually, the frontends talking to backends wouldn't talk directly to their IP address. They actually talk to a VIP, Virtual IP that Swarm puts in front of all services. This is Routing Mesh.
 ## Find the IP addresses by docker node inspect node1/2/3
 ![site-running-on-all-three-nodes](site-running-on-all-three-nodes.gif)
 ```
@@ -1328,4 +1328,9 @@ docker@node1:~$ docker service inspect drupal
 ]
 
 ```
-
+## Routing Mesh
+### If I create a service, and I tell it to have three replicas and create 3 tasks with 3 containers, on 3 nodes. Inside of the overlay network, it's creating a virtual IP that's mapped to the DNS name of the service. And the service, by default, the DNS name is the name of the service. Here, I create a service called my-web, and any other containers I have in my overlay networks that need to talk to that service inside the swarm, only have to worry about using the my-web DNS. The virtual IP properly load bounces the traffic amoungst all the tasks in that service.
+![routing_mesh_1](https://github.com/NoriKaneshige/Docker_Swarm/blob/master/routing_mesh_1.png)
+![routing_mesh_2](https://github.com/NoriKaneshige/Docker_Swarm/blob/master/routing_mesh_2.png)
+### The example below is showing what it would be like with external traffic comming in. One service called my-web with two taskes (two replicas). It applies them to two different nodes, each one of those nodes has a built-in load balancer on the external IP address. When it uses -p and publish it on a port 8080, any traffic that comes in to any of these three nodes hits that load balancer on port 8080. The load balancer decides which container should get the traffic and whether or not that traffic is on the local node, or it needs to send the traffic over the network to a different node.
+![routing_mesh_3](https://github.com/NoriKaneshige/Docker_Swarm/blob/master/routing_mesh_3.png)
