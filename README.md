@@ -633,6 +633,30 @@ p6cl826qeq2h        flamboyant_einstein.1   alpine:latest       node2           
 3fzbrso28iqd        flamboyant_einstein.2   alpine:latest       node3               Running             Running 5 minutes ago
 u1zgdp8eh2lp        flamboyant_einstein.3   alpine:latest       node1               Running             Running 5 minutes ago
 ```
+## Now, remove the service and check the status of nodes
+```
+docker@node1:~$ docker service ls
+ID                  NAME                  MODE                REPLICAS            IMAGE               PORTS
+wwa38vyp3132        flamboyant_einstein   replicated          3/3                 alpine:latest
+
+docker@node1:~$ docker service rm flamboyant_einstein
+flamboyant_einstein
+
+docker@node1:~$ docker service ls
+ID                  NAME                MODE                REPLICAS            IMAGE               PORTS
+
+docker@node1:~$ docker node ps node1
+ID                  NAME                IMAGE               NODE                DESIRED STATE       CURRENT STATE       ERROR               PORTS
+
+docker@node1:~$ docker node ps node2
+ID                  NAME                IMAGE               NODE                DESIRED STATE       CURRENT STATE       ERROR               PORTS
+
+docker@node1:~$ docker node ps node3
+ID                  NAME                IMAGE               NODE                DESIRED STATE       CURRENT STATE       ERROR               PORTS
+
+docker@node1:~$ docker container ls
+CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS               NAMES
+```
 
 
 # This time, I use play-with-docker.com
