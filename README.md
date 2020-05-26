@@ -1890,6 +1890,7 @@ docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery
     }
 ]
 ```
+# Secrets with service
 ## Let's creat a service that can see the secret
 ### docker service create --name psql --secret psql_user --secret psql_pass -e POSTGRES_PASSWORD_FILE=/run/secrets/psql_pass -e POSTGRES_USER_FILE=/run/secrets/psql_user postgres
 ### docker service create --name [service_name] --secret psql_user --secret psql_pass -e POSTGRES_PASSWORD_FILE=/run/secrets/psql_pass -e POSTGRES_USER_FILE=/run/secrets/psql_user postgres
@@ -1981,3 +1982,5 @@ docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery
 ID                  NAME                IMAGE               NODE                DESIRED STATE       CURRENT STATE            ERROR               PORTS
 fmrhkubd5wty        psql.1              postgres:latest     node1               Running             Running 22 minutes ago
 ```
+# Secrets with swarm
+
