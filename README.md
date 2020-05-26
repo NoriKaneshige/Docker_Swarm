@@ -2091,3 +2091,30 @@ Removing secret mydb_psql_user
 Removing secret mydb_psql_password
 Removing network mydb_default
 ```
+## Assignment: create stack with secrets
+![create_stack_with_secrets](https://github.com/NoriKaneshige/Docker_Swarm/blob/master/create_stack_with_secrets.png)
+### To use stack with secrets, we need 3.1 version or newer. Remember swarm doesn't build an image, so we use an official image from docker hub. We are going to copy the compose file over to the server on node1 of our swarm, and then we'll give the stack a shot. docker stack deploy -c compose_file name_of_the_stack
+
+```
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery$ cd secrets-assignment-1/
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/secrets-assignment-1$ ls
+answer
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/secrets-assignment-1$ cd answer/
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/secrets-assignment-1/answer$ ls
+docker-compose.yml
+
+# create a secret by echoing
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/secrets-assignment-1/answer$ echo "ojaoijw498ajoieja" | docker secret create psql-pw -
+k0gxhg5cshicvd6r5v3s81jpn
+
+# deploy the stack
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/secrets-assignment-1/answer$ docker stack deploy -c docker-compose.yml drupal
+Creating network drupal_default
+Creating service drupal_postgres
+Creating service drupal_drupal
+
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/secrets-assignment-1/answer$ docker stack ps drupal
+ID                  NAME                IMAGE               NODE                DESIRED STATE       CURRENT STATE              ERROR               PORTS
+o1llyg14rjym        drupal_drupal.1     drupal:8.8.2        node2               Running             Preparing 35 seconds ago
+q70ziqafelym        drupal_postgres.1   postgres:12.1       node1               Running             Preparing 36 seconds ago
+```
