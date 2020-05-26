@@ -1823,4 +1823,10 @@ Nothing found in stack: voteapp
 docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/swarm-stack-1$ docker container ls
 CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS               NAMES
 ```
+# Secrets Storage for Swarm
+![secrets](https://github.com/NoriKaneshige/Docker_Swarm/blob/master/secrets.png)
+### First put secrets into the swarm database using docker secrets commands. Then we assign them to the services whether we use the service commands themselves or a stack file to tell swarm who's allowed to use this secret. 
+```
+# prepare swarm and nodes
 
+```
