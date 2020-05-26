@@ -1827,6 +1827,157 @@ CONTAINER ID        IMAGE               COMMAND             CREATED             
 ![secrets](https://github.com/NoriKaneshige/Docker_Swarm/blob/master/secrets.png)
 ### First put secrets into the swarm database using docker secrets commands. Then we assign them to the services whether we use the service commands themselves or a stack file to tell swarm who's allowed to use this secret. 
 ```
-# prepare swarm and nodes
+# prepare swarm and nodes, then enter node1 and move to the folder that a secret file is in.
+Koitaro@MacBook-Pro-3 ~ % docker swarm init
+Swarm initialized: current node (siy9t7tfrp489ai0ma9kn5bsn) is now a manager.
 
+To add a worker to this swarm, run the following command:
+
+    docker swarm join --token SWMTKN-1-1xhzhoseixf8vk859s44h54qaa3n5j8hwu6qdfy9465baz5kxs-dc68n91ox7ikd6lten4z7hi64 192.168.65.3:2377
+
+To add a manager to this swarm, run 'docker swarm join-token manager' and follow the instructions.
+
+Koitaro@MacBook-Pro-3 ~ % docker node ls
+ID                            HOSTNAME            STATUS              AVAILABILITY        MANAGER STATUS      ENGINE VERSION
+siy9t7tfrp489ai0ma9kn5bsn *   docker-desktop      Ready               Active              Leader              19.03.8
+
+Koitaro@MacBook-Pro-3 ~ % docker-machine ssh node1
+   ( '>')
+  /) TC (\   Core is distributed with ABSOLUTELY NO WARRANTY.
+ (/-_--_-\)           www.tinycorelinux.net
+
+docker@node1:~$ docker node ls
+ID                            HOSTNAME            STATUS              AVAILABILITY        MANAGER STATUS      ENGINE VERSION
+gojgdw59ie6h4jn2rdsdzlojj *   node1               Ready               Active              Leader              19.03.5
+p71mmbgxygp9pvq2xmwydjg32     node2               Ready               Active              Reachable           19.03.5
+tpk14payxih56xrjilciyfqcd     node3               Ready               Active              Reachable           19.03.5
+
+docker@node1:~$ cd /Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/secrets-sample-1
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/secrets-sample-1$
+```
+## Two ways to create a secret inside of swarm.
+### 1) Give a file to the swarm, or 2) Pass a value at the command line
+### The goal here is that once you put the secret in the system, it's stored in the database. And the only thing that's going to have access to the decrypted secrets is going to be the containers and services we assign it to.
+```
+# 1) docker secret create [name in the secret database] file
+# Note: this is storing the password on the hard drive of the server on the host. 
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/secrets-sample-1$ docker secret create psql_user psql_user.txt
+5ex534dc89v92en3ctu4n54ik
+
+# 2) '-' at the end means it's telling the command to read from the standard input.
+# Note: this is going into the history of our bash file for our root user. So, if someone were able to get into root, they could get this password out.
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/secrets-sample-1$ echo "myDBpassWORD" | docker secret create psql_pass -
+x20tc962rur3ft1rncys07v2s
+
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/secrets-sample-1$ docker secret ls
+ID                          NAME                DRIVER              CREATED             UPDATED
+x20tc962rur3ft1rncys07v2s   psql_pass                               5 minutes ago       5 minutes ago
+5ex534dc89v92en3ctu4n54ik   psql_user                               7 minutes ago       7 minutes ago
+
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/secrets-sample-1$ docker secret inspect psql_user
+[
+    {
+        "ID": "5ex534dc89v92en3ctu4n54ik",
+        "Version": {
+            "Index": 314
+        },
+        "CreatedAt": "2020-05-26T00:55:51.708133479Z",
+        "UpdatedAt": "2020-05-26T00:55:51.708133479Z",
+        "Spec": {
+            "Name": "psql_user",
+            "Labels": {}
+        }
+    }
+]
+```
+## Let's creat a service that can see the secret
+### docker service create --name psql --secret psql_user --secret psql_pass -e POSTGRES_PASSWORD_FILE=/run/secrets/psql_pass -e POSTGRES_USER_FILE=/run/secrets/psql_user postgres
+### docker service create --name [service_name] --secret psql_user --secret psql_pass -e POSTGRES_PASSWORD_FILE=/run/secrets/psql_pass -e POSTGRES_USER_FILE=/run/secrets/psql_user postgres
+### we are going to map the secret to the service called psql. We are telling this create command, take this secret, call this particular name, psql_user, assign it to the service so that all containers in this service will see the secret. Also, if you specify a file and this would be the path /run/secrets/[secret_name]. If I do this, that's in the startup of the image that will look for this environment variable being filled out and if it is, it'll then pull that file in, and store it in the environment variable. Also do the same thing for the user with /run/secrets/[secret_name]. Then, lastly, put the image. This is going to create one postgres database and it's going to pass it the environment variable for the locations of those two secrets. Then, it's going to map, in a tempfs, in what look like files.
+```
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/secrets-sample-1$ docker service create --name psql --secret psql_user --secret psql_pass -e POSTGRES_PASSWORD_FILE=/run/secrets/psql_pass -e POSTGRES_USER_FILE=/run/secrets/psql_user postgres
+
+x9ypjpzel4sl2dps9wdj7lxfi
+overall progress: 1 out of 1 tasks
+1/1: running   [==================================================>]
+verify: Service converged
+
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/secrets-sample-1$ docker service ps psql
+ID                  NAME                IMAGE               NODE                DESIRED STATE       CURRENT STATE           ERROR               PORTS
+fmrhkubd5wty        psql.1              postgres:latest     node1               Running             Running 3 minutes ago
+```
+## Let's do "docker exec -it [conainer_name] bash" to see what we can see inside the container! Note: you can use tab completion to put container ID after psql.1.
+```
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/secrets-sample-1$ docker exec -it psql.1.fmrhkubd5wtyefhwacj345y1b bash
+root@0dd70ba6c984:/#
+
+root@0dd70ba6c984:/# ls /run/secrets/
+psql_pass  psql_user
+
+root@0dd70ba6c984:/# cat /run/secrets/psql_user
+mypsqluser
+
+root@0dd70ba6c984:/# cat /run/secrets/psql_pass
+myDBpassWORD
+
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/secrets-sample-1$ docker logs psql.1.fmrhkubd5wtyefhwacj345y1b
+The files belonging to this database system will be owned by user "postgres".
+This user must also own the server process.
+
+The database cluster will be initialized with locale "en_US.utf8".
+The default database encoding has accordingly been set to "UTF8".
+The default text search configuration will be set to "english".
+
+Data page checksums are disabled.
+
+fixing permissions on existing directory /var/lib/postgresql/data ... ok
+creating subdirectories ... ok
+selecting dynamic shared memory implementation ... posix
+selecting default max_connections ... 100
+selecting default shared_buffers ... 128MB
+selecting default time zone ... Etc/UTC
+creating configuration files ... ok
+running bootstrap script ... ok
+performing post-bootstrap initialization ... ok
+syncing data to disk ... ok
+
+initdb: warning: enabling "trust" authentication for local connections
+You can change this by editing pg_hba.conf or using the option -A, or
+--auth-local and --auth-host, the next time you run initdb.
+
+Success. You can now start the database server using:
+
+    pg_ctl -D /var/lib/postgresql/data -l logfile start
+
+waiting for server to start....2020-05-26 01:22:21.010 UTC [47] LOG:  starting PostgreSQL 12.3 (Debian 12.3-1.pgdg100+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 8.3.0-6) 8.3.0, 64-bit
+2020-05-26 01:22:21.011 UTC [47] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2020-05-26 01:22:21.026 UTC [48] LOG:  database system was shut down at 2020-05-26 01:22:20 UTC
+2020-05-26 01:22:21.030 UTC [47] LOG:  database system is ready to accept connections
+ done
+server started
+CREATE DATABASE
+
+
+/usr/local/bin/docker-entrypoint.sh: ignoring /docker-entrypoint-initdb.d/*
+
+2020-05-26 01:22:21.352 UTC [47] LOG:  received fast shutdown request
+waiting for server to shut down....2020-05-26 01:22:21.353 UTC [47] LOG:  aborting any active transactions
+2020-05-26 01:22:21.361 UTC [47] LOG:  background worker "logical replication launcher" (PID 54) exited with exit code 1
+2020-05-26 01:22:21.361 UTC [49] LOG:  shutting down
+2020-05-26 01:22:21.372 UTC [47] LOG:  database system is shut down
+ done
+server stopped
+
+PostgreSQL init process complete; ready for start up.
+
+2020-05-26 01:22:21.469 UTC [1] LOG:  starting PostgreSQL 12.3 (Debian 12.3-1.pgdg100+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 8.3.0-6) 8.3.0, 64-bit
+2020-05-26 01:22:21.470 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+2020-05-26 01:22:21.470 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+2020-05-26 01:22:21.471 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2020-05-26 01:22:21.484 UTC [65] LOG:  database system was shut down at 2020-05-26 01:22:21 UTC
+2020-05-26 01:22:21.489 UTC [1] LOG:  database system is ready to accept connections
+
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/secrets-sample-1$ docker service ps psql
+ID                  NAME                IMAGE               NODE                DESIRED STATE       CURRENT STATE            ERROR               PORTS
+fmrhkubd5wty        psql.1              postgres:latest     node1               Running             Running 22 minutes ago
 ```
