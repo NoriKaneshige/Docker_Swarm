@@ -1984,18 +1984,18 @@ fmrhkubd5wty        psql.1              postgres:latest     node1               
 ```
 ## Remove the service and secrets
 ```
-docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/secrets-sample-2$ docker service rm psql
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/secrets-sample-1$ docker service rm psql
 psql
 
-docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/secrets-sample-2$ docker service ps psql
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/secrets-sample-1$ docker service ps psql
 no such service: psql
 
-docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/secrets-sample-2$ docker secret ls
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/secrets-sample-1$ docker secret ls
 ID                          NAME                DRIVER              CREATED             UPDATED
 x20tc962rur3ft1rncys07v2s   psql_pass                               About an hour ago   About an hour ago
 5ex534dc89v92en3ctu4n54ik   psql_user                               About an hour ago   About an hour ago
 
-docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/secrets-sample-2$ docker secret --help
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/secrets-sample-1$ docker secret --help
 
 Usage:	docker secret COMMAND
 
@@ -2009,12 +2009,85 @@ Commands:
 
 Run 'docker secret COMMAND --help' for more information on a command.
 
-docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/secrets-sample-2$ docker secret rm psql_pass psql_user
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/secrets-sample-1$ docker secret rm psql_pass psql_user
 psql_pass
 psql_user
 
-docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/secrets-sample-2$ docker secret ls
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/secrets-sample-1$ docker secret ls
 ID                  NAME                DRIVER              CREATED             UPDATED
 ```
 # Secrets with swarm
+## Now define all secret things in yml file (compose file)!
+### We need to tell the compose file where the secrets are, then we assign them to the services that need the secrets. Only the container that wants our secret gets our secret. If this was a complicated compose file where we have multiple services, we may have different secrets for different services. We would first define all of secrets down the bottom and then we would assign them specifically at each service.
+```
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/secrets-sample-2$ ls
+docker-compose.yml  psql_password.txt   psql_user.txt
 
+# YAML file
+# version should be 3.1 or newer to use stack with secrets
+version: "3.1"
+
+services:
+  psql:
+    image: postgres
+    secrets:
+      - psql_user
+      - psql_password
+    environment:
+      POSTGRES_PASSWORD_FILE: /run/secrets/psql_password
+      POSTGRES_USER_FILE: /run/secrets/psql_user
+
+# root secrets key here where we define our secrets. we are using files here.
+secrets:
+  psql_user:
+    file: ./psql_user.txt
+  psql_password:
+    file: ./psql_password.txt
+```
+## Let's use docker stack deploy command
+```
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/secrets-sample-2$ docker stack deploy -c docker-compose.yml mydb
+Creating network mydb_default
+Creating secret mydb_psql_user
+Creating secret mydb_psql_password
+Creating service mydb_psql
+```
+## Look up the value in the service/container
+```
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/secrets-sample-2$ docker secret ls
+ID                          NAME                 DRIVER              CREATED             UPDATED
+txt5npaoelug8gxval2ln9nzb   mydb_psql_password                       27 seconds ago      27 seconds ago
+ctt3vzfsymgbpmha606wa0r8o   mydb_psql_user                           27 seconds ago      27 seconds ago
+
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/secrets-sample-2$ docker service ls
+ID                  NAME                MODE                REPLICAS            IMAGE               PORTS
+3j6nla2zsc6b        mydb_psql           replicated          1/1                 postgres:latest
+
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/secrets-sample-2$ docker service ps mydb_psql
+ID                  NAME                IMAGE               NODE                DESIRED STATE       CURRENT STATE           ERROR               PORTS
+end0mn6blp9y        mydb_psql.1         postgres:latest     node1               Running             Running 3 minutes ago
+
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/secrets-sample-2$ docker exec -it mydb_psql.1.end0mn6blp9yj616elxbd466o bash
+root@da4d2c8327d7:/#
+
+root@da4d2c8327d7:/# ls /run/secrets/
+psql_password  psql_user
+
+root@da4d2c8327d7:/# cat /run/secrets/psql_password
+QpqQcgD7dxVG
+
+root@da4d2c8327d7:/# cat /run/secrets/psql_user
+dbuser
+```
+## Remove the stack, which cleans up the secrets and gets rid of them.
+## Note that in the previous example, secrets with service, we have to do a "docker secret rm" to remove each secret.
+```
+root@da4d2c8327d7:/# exit
+exit
+
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/secrets-sample-2$ docker stack rm mydb
+Removing service mydb_psql
+Removing secret mydb_psql_user
+Removing secret mydb_psql_password
+Removing network mydb_default
+```
