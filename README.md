@@ -2094,6 +2094,7 @@ Removing network mydb_default
 ## Assignment: create stack with secrets
 ![create_stack_with_secrets](https://github.com/NoriKaneshige/Docker_Swarm/blob/master/create_stack_with_secrets.png)
 ### To use stack with secrets, we need 3.1 version or newer. Remember swarm doesn't build an image, so we use an official image from docker hub. We are going to copy the compose file over to the server on node1 of our swarm, and then we'll give the stack a shot. docker stack deploy -c compose_file name_of_the_stack
+![drupal_stack_with_secret](https://github.com/NoriKaneshige/Docker_Swarm/blob/master/drupal_stack_with_secret.png)
 
 ```
 docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery$ cd secrets-assignment-1/
@@ -2117,4 +2118,17 @@ docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery
 ID                  NAME                IMAGE               NODE                DESIRED STATE       CURRENT STATE              ERROR               PORTS
 o1llyg14rjym        drupal_drupal.1     drupal:8.8.2        node2               Running             Preparing 35 seconds ago
 q70ziqafelym        drupal_postgres.1   postgres:12.1       node1               Running             Preparing 36 seconds ago
+
+# remove the stack
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/secrets-assignment-1/answer$ docker stack ls
+NAME                SERVICES            ORCHESTRATOR
+drupal              2                   Swarm
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/secrets-assignment-1/answer$ docker stack ps drupal
+ID                  NAME                IMAGE               NODE                DESIRED STATE       CURRENT STATE           ERROR               PORTS
+o1llyg14rjym        drupal_drupal.1     drupal:8.8.2        node2               Running             Running 3 minutes ago
+q70ziqafelym        drupal_postgres.1   postgres:12.1       node1               Running             Running 3 minutes ago
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/secrets-assignment-1/answer$ docker stack rm drupal
+Removing service drupal_drupal
+Removing service drupal_postgres
+Removing network drupal_default
 ```
