@@ -1982,5 +1982,39 @@ docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery
 ID                  NAME                IMAGE               NODE                DESIRED STATE       CURRENT STATE            ERROR               PORTS
 fmrhkubd5wty        psql.1              postgres:latest     node1               Running             Running 22 minutes ago
 ```
+## Remove the service and secrets
+```
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/secrets-sample-2$ docker service rm psql
+psql
+
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/secrets-sample-2$ docker service ps psql
+no such service: psql
+
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/secrets-sample-2$ docker secret ls
+ID                          NAME                DRIVER              CREATED             UPDATED
+x20tc962rur3ft1rncys07v2s   psql_pass                               About an hour ago   About an hour ago
+5ex534dc89v92en3ctu4n54ik   psql_user                               About an hour ago   About an hour ago
+
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/secrets-sample-2$ docker secret --help
+
+Usage:	docker secret COMMAND
+
+Manage Docker secrets
+
+Commands:
+  create      Create a secret from a file or STDIN as content
+  inspect     Display detailed information on one or more secrets
+  ls          List secrets
+  rm          Remove one or more secrets
+
+Run 'docker secret COMMAND --help' for more information on a command.
+
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/secrets-sample-2$ docker secret rm psql_pass psql_user
+psql_pass
+psql_user
+
+docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery/secrets-sample-2$ docker secret ls
+ID                  NAME                DRIVER              CREATED             UPDATED
+```
 # Secrets with swarm
 
