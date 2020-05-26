@@ -2131,4 +2131,6 @@ docker@node1:/Users/Koitaro/Desktop/Docker_Bret_Fisher/code/udemy-docker-mastery
 Removing service drupal_drupal
 Removing service drupal_postgres
 Removing network drupal_default
+
+# Do not forget to exit node1, leave from the swarm, power-off all machines in virtualbox
 ```
